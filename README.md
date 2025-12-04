@@ -1,36 +1,247 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📘 EduNotes Platform — README
 
-## Getting Started
+A modern, full‑featured web platform where users can upload, explore, share, and interact with educational notes. This README outlines the complete structure, pages, features, and architecture of the platform.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 🚀 Overview
+
+EduNotes is a **knowledge-sharing web platform** integrating:
+
+* Notes uploading & sharing
+* Smart search & filtering
+* Messaging & live streaming
+* Reward system
+* AI-powered tools
+* Donations (Buy Me a Coffee)
+* User profiles & dashboard
+* Admin panel
+
+It includes **separate interfaces** for logged-in and logged-out users.
+
+---
+
+# 🗂️ Platform Pages (Complete Breakdown)
+
+Below are all pages you would build in this project.
+
+---
+
+## 🌐 1. Public (Before Login) Pages
+
+### **1. Landing Page (Home)**
+
+* Hero banner with CTA
+* Top features preview
+* Trending notes preview
+* Testimonials / creators highlight
+* Login/Register buttons
+
+### **2. Login Page**
+
+* Email/password login
+* Social logins (Google / GitHub)
+
+### **3. Register Page**
+
+* Name, email, password
+* Social sign-up
+
+### **4. About Page** (optional)
+
+* Mission & platform goals
+
+### **5. Contact Page** (optional)
+
+* Feedback / inquiry form
+
+---
+
+## 🔐 2. Authenticated (After Login) Pages
+
+### **1. Dashboard**
+
+* Recommended notes
+* Quick stats (views, points)
+* AI assistant widget
+* Quick Upload button
+
+### **2. Explore Notes Page**
+
+* Notes grid/list
+* Search bar + filters
+* Sort options
+
+### **3. Note Details Page**
+
+* Title, description, preview
+* Views, tags, subject info
+* Download/view button
+* Message uploader button
+* Report button (optional)
+
+### **4. Upload Notes Page**
+
+* Upload PDF/image/doc/text
+* Add metadata (tags, description, subject)
+
+### **5. Messages (Chat) Page**
+
+* List of conversations
+* Real-time chat view
+
+### **6. Live Streaming Pages**
+
+#### a) Start Live Stream page
+
+* Start session
+* Set title/category
+
+#### b) "Live Now" Page
+
+* Shows all active streams
+
+#### c) Live Stream View Page
+
+* Streaming video player
+* Live chat panel
+
+### **7. AI Assistant Page**
+
+* Ask questions
+* Summaries
+* Recommendations
+
+### **8. User Profile Page (Public)**
+
+Shows:
+
+* Username
+* Bio
+* Uploaded notes
+* Reward points
+* Donation button
+* Live session history
+
+### **9. My Profile (Private)**
+
+* Edit profile
+* Analytics
+* Donations received
+* Points history
+
+### **10. Notifications Page**
+
+* New messages
+* New followers
+* Live events
+* Points earned
+
+---
+
+## 🛡️ 3. Admin Panel Pages
+
+### **1. Admin Dashboard**
+
+* Total users, notes, streams
+
+### **2. Users Management**
+
+* Ban/unban
+
+### **3. Notes Management**
+
+* Approve flagged
+* Remove inappropriate notes
+
+### **4. Live Streams Monitor**
+
+* Active streams
+
+### **5. Donations Logs**
+
+### **6. AI Moderation Tools**
+
+---
+
+# 🧠 Features Summary
+
+* Notes upload system
+* AI tagging & recommendation
+* Smart search + filters
+* Reward system
+* Chat system (Sockets)
+* Live streaming
+* Donations
+* User analytics
+
+---
+
+# 🧱 Suggested Tech Stack
+
+| Category  | Recommended                   |
+| --------- | ----------------------------- |
+| Frontend  | React / Next.js               |
+| Backend   | Node.js / Express / Nest.js   |
+| Database  | MongoDB                       |
+| Real-Time | Socket.io                     |
+| Streaming | WebRTC / Livekit / Agora      |
+| AI        | Gemini / OpenAI API           |
+| Storage   | Cloudinary / Firebase Storage |
+| Payments  | eSewa / Khalti / Stripe       |
+
+---
+
+# 🔄 User Flow
+
+1. User visits landing page.
+2. Registers & logs in.
+3. Gets dashboard recommendations.
+4. Uploads and explores notes.
+5. Earns points when others view notes.
+6. Chats with other users.
+7. Joins or hosts live streams.
+8. Uses AI features.
+9. Receives donations.
+
+---
+
+# 📁 Folder Structure (Recommended)
+
+```
+root/
+│── frontend/
+│   │── components/
+│   │── pages/
+│   │── styles/
+│   │── utils/
+│   └── services/
+│
+│── backend/
+│   │── controllers/
+│   │── routes/
+│   │── models/
+│   │── middleware/
+│   └── services/
+│
+│── database/
+│── docs/
+└── README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# 🎉 Final Notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This README gives you a **complete professional blueprint**. You can directly use it for:
 
-## Learn More
+* GitHub project
+* Project submission
+* Freelance project documentation
+* Personal portfolio project
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Let me know if you want:
+✅ Wireframes
+✅ Database schema
+✅ API documentation
+✅ Full UI design
