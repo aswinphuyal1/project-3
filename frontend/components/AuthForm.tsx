@@ -49,7 +49,7 @@ const InputField: React.FC<{
   showPassword,
   setShowPassword,
 }) => (
-  <div className="mb-6">
+  <div className="mb-0">
     <label htmlFor={id} className="text-gray-900 font-medium mb-2 block">
       {label}
     </label>
