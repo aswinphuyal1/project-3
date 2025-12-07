@@ -241,7 +241,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         <div className="flex space-x-3">
           <SocialButton Icon={FaFacebookF} label="Facebook" />
           <SocialButton Icon={FaGoogle} label="Google" />
-          <SocialButton Icon={FaApple} label="Apple" />
+          {/* <SocialButton Icon={FaApple} label="Apple" /> */}
         </div>
       </div>
     </div>
