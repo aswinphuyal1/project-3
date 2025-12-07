@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation"; // 1. Import useRouter
 import illustration from "@/image/backgrounnd.png";
 // Ensure your illustration image is either black/white/monochrome or its colors work well with this theme.
 
 export default function About() {
+  const router = useRouter(); // 2. Initialize the router hook
+
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col items-center py-16 px-6">
       {/* Hero Section */}
@@ -37,6 +40,7 @@ export default function About() {
             src={illustration}
             alt="NotesShare Illustration"
             className="w-full max-w-lg drop-shadow-2xl rounded-xl"
+            // Removed style={{ filter: 'grayscale(100%)' }} to match the provided code
           />
         </div>
       </motion.div>
@@ -101,7 +105,12 @@ export default function About() {
           NotesShare is the all-in-one platform for sharing knowledge,
           connecting with experts, and elevating your learning journey.
         </p>
-        <button className="mt-8 bg-gray-900 text-white px-10 py-3 rounded-full text-lg font-semibold hover:bg-black transition shadow-lg">
+
+        {/* 3. Updated Button with onClick handler */}
+        <button
+          onClick={() => router.push("/explore-notes")} // Navigate to the Notes/Explore page
+          className="mt-8 bg-gray-900 text-white px-10 py-3 rounded-full text-lg font-semibold hover:bg-black transition shadow-lg"
+        >
           Start Your Journey Today
         </button>
       </motion.div>
