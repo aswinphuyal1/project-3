@@ -10,9 +10,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: "Profile", href: "/profile", isHighlighted: true },
-  { name: "Notes", href: "/notes", isHighlighted: true },
   { name: "Home", href: "/home", isHighlighted: true },
+  { name: "Notes", href: "/notes", isHighlighted: true },
+  { name: "About us", href: "/aboutus", isHighlighted: true },
 ];
 
 const Navbar: React.FC = () => {
@@ -58,7 +58,7 @@ const Navbar: React.FC = () => {
         {/* --- The Dark Button ('Access For Web') --- */}
         {/* 4. Use a slightly larger margin 'ml-4' to visually separate the button from the last nav link */}
         <a
-          href="/access"
+          href="/login"
           className="
             ml-4 px-4 py-2.5 text-sm font-medium
             text-white bg-black rounded-full
