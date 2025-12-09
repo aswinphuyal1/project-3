@@ -23,12 +23,6 @@ const UploadButton: React.FC<UploadButtonProps> = ({
     router.push(uploadPath);
   };
 
-  // --- Color Palette Reference ---
-  // Background/Card: #FAF3E1 (lightest beige)
-  // Background Detail: #F5E7C6 (slightly darker beige/cream) - used here for padding/shadows
-  // Accent/Primary Button: #FF6D1F (bright orange)
-  // Text/Secondary: #222222 (dark grey/black)
-
   return (
     <div
       className="
