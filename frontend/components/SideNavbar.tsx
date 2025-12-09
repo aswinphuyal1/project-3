@@ -22,7 +22,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 1, label: "Home", icon: Home, path: "/home" },
-  { id: 2, label: "Explore Notes", icon: NotebookText, path: "/notes" },
+  { id: 2, label: "Explore Notes", icon: NotebookText, path: "/explore" },
   { id: 3, label: "Messages", icon: MessageSquare, path: "/message" },
   { id: 4, label: "Live Sessions", icon: Video, path: "/live" },
   { id: 5, label: "AI Assistant", icon: Brain, path: "/ai" },
