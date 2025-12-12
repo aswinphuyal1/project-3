@@ -8,6 +8,8 @@ import SideNavbar from "@/components/SideNavbar";
 // Replace this with your actual authentication logic
 const isLoggedIn = true; // e.g., get from context, cookies, etc.
 
+
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col">
