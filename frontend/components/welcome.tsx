@@ -64,11 +64,9 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({
   const formattedPoints = points.toLocaleString();
 
   return (
-    // Card container: Styles matching the image, incorporating the color palette
-    <div className="p-8 max-w-4xl mx-auto rounded-3xl bg-white shadow-2xl shadow-gray-300 border border-[#F5E7C6]">
-      {/* 1. Header Section: Welcome Message and Action Button */}
-      <div className="flex justify-between items-start mb-6">
-        <h2 className="text-5xl font-extrabold text-[#222222]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-full md:max-w-4xl mx-auto rounded-3xl bg-white shadow-2xl shadow-gray-300 border border-[#F5E7C6]">
+      <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222]">
           Welcome Back, <span className="text-[#FF6D1F]">{username}</span>
         </h2>
 
@@ -76,14 +74,12 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({
         
       </div>
 
-      {/* 2. Placeholder Text */}
       <p className="text-gray-500 text-xs mb-8">
         Recent activity summary placeholder: notes uploaded, points earned, and
         donations received.
       </p>
 
-      {/* 3. Stats Section: Grid Layout for Metrics */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         <StatCard label="Points" value={formattedPoints} icon={Award} />
         <StatCard label="Donations" value={formattedDonations} icon={CupSoda} />
         <StatCard label="Total Views" value={formattedViews} icon={Eye} />

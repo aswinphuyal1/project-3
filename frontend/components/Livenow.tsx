@@ -126,9 +126,9 @@ const LiveSessionsWidget: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-full md:max-w-md">
       {/* Widget Card Container */}
-      <div className="bg-white p-6 rounded-2xl shadow-xl relative overflow-hidden border border-[#F5E7C6]">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl relative overflow-hidden border border-[#F5E7C6]">
         {/* Top Accent Bar */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-[#FF6D1F]"></div>
 

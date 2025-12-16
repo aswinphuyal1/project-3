@@ -17,9 +17,7 @@ const navItems: NavItem[] = [
 
 const Navbar: React.FC = () => {
   return (
-    // 1. Ensure maximum separation using 'justify-between'
-    // 2. Add padding for visual spacing from screen edges (e.g., px-12 for desktop)
-    <nav className="flex items-center justify-between h-16 w-full px-4 sm:px-8 md:px-12 bg-white border-b border-gray-100">
+    <nav className="flex flex-wrap items-center justify-between h-16 w-full px-4 sm:px-6 md:px-12 bg-white border-b border-gray-100">
       {/* --- Left Section: Noteshare Logo/Brand --- */}
       <div className="flex items-center">
         <a

@@ -34,7 +34,7 @@ const SideNavbar: React.FC = () => {
   const pathname = usePathname();
 
   return (
-    <div className="w-60 h-screen  text-[#222222] shadow-2xl pt-6">
+    <div className="h-full w-56 lg:w-64 text-[#222222] shadow-2xl pt-6">
       <nav className="flex flex-col space-y-1">
         {navItems.map((item) => {
           const isActive =

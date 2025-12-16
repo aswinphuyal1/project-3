@@ -32,7 +32,7 @@ const RecentUpload: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg p-5 w-full max-w-2xl border border-gray-200">
+    <div className="bg-white rounded-lg p-4 sm:p-5 w-full max-w-full md:max-w-2xl border border-gray-200">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Your Recent Uploads</h2>

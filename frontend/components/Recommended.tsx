@@ -68,26 +68,19 @@ const RecommendedForYou: React.FC = () => {
   }, []);
 
   return (
-    // Main container uses #FAF3E1
-    <div className=" rounded-xl p-6 w-full max-w-4xl border border-[#F5E7C6] shadow-md">
-      {/* Header with View All Link */}
-      <div className="flex justify-between items-center mb-6">
-        {/* Title uses #222222 */}
-        <h2 className="text-2xl font-bold text-[#222222]">
+    <div className="rounded-xl p-4 sm:p-6 w-full max-w-full md:max-w-4xl border border-[#F5E7C6] shadow-md">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-[#222222]">
           Recommended for You
         </h2>
-
-        {/* View All link styled with the accent color #FF6D1F */}
         <button
           onClick={() => router.push("/notes/recommended")}
-          className="text-[#FF6D1F] font-semibold text-lg hover:text-[#E05E1A] transition-colors"
+          className="text-[#FF6D1F] font-semibold text-base sm:text-lg hover:text-[#E05E1A] transition-colors"
         >
           View All
         </button>
       </div>
-
-      {/* Recommended Notes Grid: 2 columns */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {shuffledNotes.map((note) => {
           const Icon = note.icon;
 

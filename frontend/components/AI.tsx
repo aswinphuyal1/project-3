@@ -65,7 +65,7 @@ const AIAssistantWidget: React.FC = () => {
 
   return (
     // Card container: Styles matching the image, using the color palette
-    <div className="relative p-6 w-full max-w-sm rounded-xl bg-white shadow-xl overflow-hidden border border-[#F5E7C6]">
+    <div className="relative p-4 sm:p-6 w-full max-w-full md:max-w-sm rounded-xl bg-white shadow-xl overflow-hidden border border-[#F5E7C6]">
       {/* Top Orange Accent Bar */}
       <div className="absolute top-0 left-0 right-0 h-2 bg-[#FF6D1F]" />
 

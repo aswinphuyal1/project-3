@@ -26,14 +26,13 @@ const UploadButton: React.FC<UploadButtonProps> = ({
   return (
     <div
       className="
-         // Lightest beige background for the card/container
-        p-6 sm:p-8 
+        p-4 sm:p-6 md:p-8 
         rounded-xl 
         shadow-2xl 
-        max-w-md 
+        max-w-full md:max-w-md 
         mx-auto 
         text-center 
-        border border-[#F5E7C6] // Subtle border detail
+        border border-[#F5E7C6]
         transition-all 
         hover:shadow-lg
       "
@@ -55,7 +54,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({
         onClick={handleUploadClick}
         className="
           cursor-pointer 
-          w-40 h-40 
+          w-32 h-32 sm:w-40 sm:h-40 
           mx-auto 
           rounded-full 
           bg-[#FF6D1F] // Primary orange accent color
