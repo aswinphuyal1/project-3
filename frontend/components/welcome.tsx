@@ -1,5 +1,5 @@
 // WelcomeCard.tsx
-"use client"
+"use client";
 import React, { useCallback } from "react";
 import { CupSoda, Eye, Award } from "lucide-react";
 
@@ -71,7 +71,6 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({
         </h2>
 
         {/* 'View All' Button */}
-        
       </div>
 
       <p className="text-gray-500 text-xs mb-8">

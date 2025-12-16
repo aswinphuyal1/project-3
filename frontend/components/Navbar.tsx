@@ -24,9 +24,7 @@ const Navbar: React.FC = () => {
           href="/"
           className="flex items-center text-xl font-bold tracking-tight text-gray-900 cursor-pointer"
         >
-          <span className="inline-block transform translate-y-[-2px]">
-            
-          </span>
+          <span className="inline-block transform translate-y-[-2px]"></span>
           Noteshare
         </a>
       </div>
