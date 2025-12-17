@@ -14,8 +14,7 @@ const Page = () => {
 
       {/* flex-1 tells this div to grow and fill all available vertical space */}
       <main className="flex-1 w-full">
-        
-        
+        <Recommended />
       </main>
     </div>
   );
