@@ -182,6 +182,8 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
           <h1 className="font-semibold text-sm">{title}</h1>
         </div>
         <button
+          type="button"
+          title="Clear Conversation"
           onClick={clearChat}
           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
         >
@@ -237,6 +239,8 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
           <div className="flex items-center gap-2 bg-slate-50 border rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-orange-200">
             {allowImages && (
               <button
+                type="button"
+                title="Attach Image"
                 onClick={() => fileInputRef.current?.click()}
                 className="text-slate-400 hover:bg-slate-200 p-2 rounded-lg"
               >
