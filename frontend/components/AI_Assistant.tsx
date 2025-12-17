@@ -249,20 +249,35 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
                   ref={fileInputRef}
                   type="file"
                   hidden
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
                 />
                 <AttachIcon />
               </button>
             )}
 
+            {/* Show file chip if file is attached */}
+            {attachedFile && (
+              <span className="flex items-center gap-1 bg-slate-200 text-slate-700 rounded px-2 py-1 text-xs font-medium mr-2">
+                <span className="truncate max-w-[120px]">
+                  {attachedFile.name}
+                </span>
+                <button
+                  type="button"
+                  title="Remove file"
+                  className="ml-1 text-slate-500 hover:text-red-500"
+                  onClick={() => setAttachedFile(null)}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
             <input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={
-                attachedFile ? `Attached: ${attachedFile.name}` : placeholder
-              }
+              placeholder={placeholder}
               className="flex-1 bg-transparent outline-none text-sm min-w-0"
               disabled={isLoading}
             />
