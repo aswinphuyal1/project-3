@@ -79,8 +79,9 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
   const genAI = new GoogleGenerativeAI(
     process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
   );
+  // Use the requested model "gemini-2.5-flash"
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash",
     systemInstruction: systemPrompt,
   });
 
