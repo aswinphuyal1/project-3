@@ -1,8 +1,10 @@
 import React from 'react'
-
+import RecommendedForYou from '@/components/Recommended'
 const page = () => {
   return (
-    <div>page</div>
+    <div>
+    <RecommendedForYou/>
+    </div>
   )
 }
 
