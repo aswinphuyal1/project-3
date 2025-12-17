@@ -151,7 +151,7 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
         ...h,
         {
           role: "model",
-          text: "Sorry, I encountered an error. Please check your connection or API key.",
+          text: "Sorry, I encountered an error.",
           isError: true,
         },
       ]);
