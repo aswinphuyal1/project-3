@@ -24,7 +24,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="main-content flex-grow">{children}</div>
         </div>
       </div>
-
       <Footer />
       <ToastContainer />
     </div>
