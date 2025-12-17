@@ -1,8 +1,8 @@
-"use client"; // Required for Next.js App Router interactivity
+"use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
-// Standard Lucide-style SVG paths
 const CoffeeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -17,54 +17,49 @@ const CoffeeIcon = () => (
   >
     <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
     <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-    <line x1="6" x2="6" y1="2" y2="4" />
-    <line x1="10" x2="10" y1="2" y2="4" />
-    <line x1="14" x2="14" y1="2" y2="4" />
+    <line x1="6" y1="2" x2="6" y2="4" />
+    <line x1="10" y1="2" x2="10" y2="4" />
+    <line x1="14" y1="2" x2="14" y2="4" />
   </svg>
 );
 
 export default function UploaderCard() {
   const [isFollowing, setIsFollowing] = useState(false);
 
-  // Sample data following your platform's schema
   const uploader = {
+    id: "1",
     name: "Dr. Sarah Lee",
     bio: "It strikes a beautiful balance between the simple and the sophisticated. I focus on delivering educational content that guides the next generation toward impactful results in their respective fields.",
     avatar:
       "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200&h=200",
   };
 
+  const profilePath = `/uploaderprofile/${uploader.id}`;
+
   return (
-    <section className="flex items-center justify-center min-h-[400px] bg-[#f1ece1] p-4 font-sans">
-      {/* Container changed to White (#FFFFFF) with a very light Orange shadow/tint */}
-      <div className="w-full max-w-2xl bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-[#FF6D1F]/5 border border-[#F5E7C6]/50">
+    <section className="flex items-center justify-center min-h-[400px] bg-[#FAF3E1] p-4 font-sans">
+      <div className="w-full max-w-2xl bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-[#F5E7C6]/50">
         <div className="flex flex-col gap-8">
-          {/* Header Area */}
+          {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-5">
-              {/* Profile Image with Brand Orange (#FF6D1F) Ring */}
-              <div className="h-20 w-20 rounded-full border-2 border-[#FF6D1F] p-1 overflow-hidden bg-white shadow-sm">
-                <img
-                  src={uploader.avatar}
-                  alt={uploader.name}
-                  className="h-full w-full rounded-full object-cover"
-                />
-              </div>
-
-              <div>
-                <h2 className="text-[#222222] text-2xl font-bold tracking-tight">
+              <Link href={profilePath} className="group">
+                <div className="h-20 w-20 rounded-full border-2 border-[#FF6D1F] p-1 overflow-hidden bg-white shadow-sm transition-transform group-hover:scale-105">
+                  <img
+                    src={uploader.avatar}
+                    alt={uploader.name}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                </div>
+              </Link>
+              <Link href={profilePath}>
+                <h2 className="text-[#222222] text-2xl font-bold tracking-tight hover:text-[#FF6D1F] transition-colors cursor-pointer">
                   {uploader.name}
                 </h2>
-                {/* Orange Tint on the Badge */}
-                <span className="text-[#FF6D1F] text-xs font-black uppercase tracking-widest bg-[#FF6D1F]/10 px-2 py-1 rounded-md">
-                  Verified Creator
-                </span>
-              </div>
+              </Link>
             </div>
-
-            {/* Interaction Button */}
             <button
-              onClick={() => setIsFollowing(!isFollowing)}
+              onClick={() => setIsFollowing((f) => !f)}
               className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 ${
                 isFollowing
                   ? "bg-[#222222] border-[#222222] text-white"
@@ -74,24 +69,20 @@ export default function UploaderCard() {
               {isFollowing ? "Following" : "Follow"}
             </button>
           </div>
-
-          {/* Bio Section */}
-          <div className="space-y-3">
-            <h3 className="text-[#222222] font-bold text-lg">
+          {/* Bio */}
+          <div>
+            <h3 className="text-[#222222] font-bold text-lg mb-1">
               About the Uploader
             </h3>
             <p className="text-[#222222]/70 leading-relaxed text-base">
               {uploader.bio}
             </p>
           </div>
-
-          {/* Platform Feature: Buy Me a Coffee Action */}
-          {/* Added a subtle orange top border tint */}
+          {/* Buy Me a Coffee */}
           <div className="pt-6 border-t border-[#FF6D1F]/10 flex flex-wrap items-center justify-between gap-4">
             <p className="text-[#222222]/60 text-sm font-medium italic">
               Love these notes? Support the creator.
             </p>
-
             <button className="flex items-center gap-2 bg-[#FF6D1F] hover:bg-[#e65a10] text-white px-6 py-3 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-[#FF6D1F]/20">
               <CoffeeIcon />
               <span>Buy Me a Coffee</span>
