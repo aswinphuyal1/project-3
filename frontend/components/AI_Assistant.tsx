@@ -1,37 +1,24 @@
 "use client";
 
-import React, {
-  useState,
-  useCallback,
-  FormEvent,
-  useRef,
-  useEffect,
-} from "react";
-import { GoogleGenAI, GenerateContentParameters } from "@google/genai";
-import { marked } from "marked";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+// Import the Google Generative AI SDK
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /* =======================
-   PROPS (FLEXIBILITY)
+   PROPS & TYPES
 ======================= */
 interface AIAssistantProps {
   title?: string;
-  model?: string;
   placeholder?: string;
   systemPrompt?: string;
   allowImages?: boolean;
   maxFileSizeMB?: number;
-  persistHistory?: boolean;
-  storageKey?: string;
-  subject?: string;
 }
 
-/* =======================
-   TYPES
-======================= */
 interface Message {
   role: "user" | "model";
   text: string;
-  file?: { name: string; type: string };
+  file?: { name: string; type: string; data?: string }; // Added data for persistence if needed
   isError?: boolean;
 }
 
@@ -40,7 +27,7 @@ interface Message {
 ======================= */
 const AttachIcon = () => (
   <svg
-    className="h-6 w-6"
+    className="h-5 w-5"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -54,16 +41,20 @@ const AttachIcon = () => (
   </svg>
 );
 
-const UserAvatar = () => (
-  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-    U
-  </div>
-);
-
-const AIAvatar = () => (
-  <div className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold">
-    AI
-  </div>
+const TrashIcon = () => (
+  <svg
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
 );
 
 /* =======================
@@ -71,14 +62,10 @@ const AIAvatar = () => (
 ======================= */
 const AI_Assistant: React.FC<AIAssistantProps> = ({
   title = "AI Study Assistant",
-  model = "gemini-2.5-flash",
-  placeholder = "Ask your question...",
-  systemPrompt,
+  placeholder = "Ask anything...",
+  systemPrompt = "You are a helpful study assistant.",
   allowImages = true,
   maxFileSizeMB = 10,
-  persistHistory = false,
-  storageKey = "ai-study-chat",
-  subject = "General",
 }) => {
   const [inputText, setInputText] = useState("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -88,219 +75,206 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  /* =======================
-     GEMINI SETUP
-  ======================= */
-  const API_KEY =
-    typeof window !== "undefined"
-      ? process.env.NEXT_PUBLIC_GEMINI_API_KEY
-      : undefined;
+  // Initialize Gemini
+  const genAI = new GoogleGenerativeAI(
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
+  );
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: systemPrompt,
+  });
 
-  const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
-
-  /* =======================
-     LOAD / SAVE HISTORY
-  ======================= */
-  useEffect(() => {
-    if (persistHistory) {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) setHistory(JSON.parse(saved));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (persistHistory) {
-      localStorage.setItem(storageKey, JSON.stringify(history));
-    }
-  }, [history]);
+  /* Helper to convert File to Gemini format */
+  const fileToGenerativePart = async (file: File) => {
+    const base64Data = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+      reader.readAsDataURL(file);
+    });
+    return {
+      inlineData: { data: base64Data, mimeType: file.type },
+    };
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, isLoading]);
 
-  /* =======================
-     FILE → BASE64
-  ======================= */
-  const fileToGenerativePart = (file: File) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(",")[1];
-        base64
-          ? resolve({
-              inlineData: { data: base64, mimeType: file.type },
-            })
-          : reject();
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  const handleSend = useCallback(async () => {
+    if (!inputText.trim() && !attachedFile) return;
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      alert("API Key missing in environment variables.");
+      return;
+    }
 
-  /* =======================
-     SEND HANDLER
-  ======================= */
-  const handleSend = useCallback(
-    async (prompt: string, file: File | null) => {
-      if (!prompt.trim() && !file) return;
+    const currentInput = inputText;
+    const currentFile = attachedFile;
 
+    // 1. Update UI locally
+    setHistory((h) => [
+      ...h,
+      {
+        role: "user",
+        text: currentInput || "Uploaded an image",
+        file: currentFile
+          ? { name: currentFile.name, type: currentFile.type }
+          : undefined,
+      },
+    ]);
+
+    // Reset inputs
+    setInputText("");
+    setAttachedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setIsLoading(true);
+
+    try {
+      // 2. Prepare Chat Parts
+      const promptParts: any[] = [currentInput || "What is in this image?"];
+
+      if (currentFile) {
+        const filePart = await fileToGenerativePart(currentFile);
+        promptParts.push(filePart);
+      }
+
+      // 3. Call API
+      // Note: For simple stateless Q&A we use generateContent.
+      // For multi-turn, you'd use model.startChat()
+      const result = await model.generateContent(promptParts);
+      const response = await result.response;
+      const responseText = response.text();
+
+      setHistory((h) => [...h, { role: "model", text: responseText }]);
+    } catch (error) {
+      console.error("Gemini Error:", error);
       setHistory((h) => [
         ...h,
         {
-          role: "user",
-          text: prompt || "File attached",
-          file: file ? { name: file.name, type: file.type } : undefined,
+          role: "model",
+          text: "Sorry, I encountered an error. Please check your connection or API key.",
+          isError: true,
         },
       ]);
-
-      setInputText("");
-      setAttachedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-      if (!ai) {
-        setHistory((h) => [
-          ...h,
-          { role: "model", text: "API Key not configured.", isError: true },
-        ]);
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const contents: GenerateContentParameters["contents"] = [
-          { role: "user", parts: [] },
-        ];
-
-        const finalPrompt = `
-Subject: ${subject}
-${systemPrompt ?? ""}
-Question: ${prompt}
-        `.trim();
-
-        if (prompt) contents[0].parts.push({ text: finalPrompt });
-
-        if (file) {
-          const part = await fileToGenerativePart(file);
-          contents[0].parts.push(part as any);
-        }
-
-        const result = await ai.models.generateContent({
-          model,
-          contents,
-        });
-
-        setHistory((h) => [
-          ...h,
-          { role: "model", text: result.text || "No response." },
-        ]);
-      } catch {
-        setHistory((h) => [
-          ...h,
-          { role: "model", text: "Something went wrong.", isError: true },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [ai, model, subject, systemPrompt]
-  );
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    handleSend(inputText, attachedFile);
-  };
-
-  /* =======================
-     FILE HANDLING
-  ======================= */
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > maxFileSizeMB * 1024 * 1024) {
-      alert(`File exceeds ${maxFileSizeMB}MB`);
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    setAttachedFile(file);
+  }, [inputText, attachedFile, model]);
+
+  const clearChat = () => {
+    if (confirm("Clear all messages?")) setHistory([]);
   };
 
-  /* =======================
-     MARKDOWN
-  ======================= */
-  const renderMarkdown = (text: string) => ({
-    __html: marked(text, { gfm: true }),
-  });
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
-  /* =======================
-     UI
-  ======================= */
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <header className="p-4 bg-white border-b font-bold text-xl">
-        {title}
+    <div className="w-full h-screen max-w-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 overflow-x-hidden">
+      {/* HEADER */}
+      <header className="h-14 flex items-center justify-between px-4 bg-white border-b shadow-sm flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+            AI
+          </div>
+          <h1 className="font-semibold text-sm">{title}</h1>
+        </div>
+        <button
+          onClick={clearChat}
+          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+        >
+          <TrashIcon />
+        </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {history.map((m, i) => (
-          <div
-            key={i}
-            className={`flex mb-4 ${
-              m.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {m.role === "model" && <AIAvatar />}
-            <div
-              className={`max-w-[75%] p-4 rounded-xl shadow ${
-                m.role === "user" ? "bg-blue-600 text-white" : "bg-white border"
-              }`}
-              dangerouslySetInnerHTML={
-                m.isError ? undefined : renderMarkdown(m.text)
-              }
-            >
-              {m.isError && <b>⚠ {m.text}</b>}
+      {/* CHAT */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {history.length === 0 && (
+            <div className="text-center py-20 text-slate-400 italic">
+              How can I help you today?
             </div>
-            {m.role === "user" && <UserAvatar />}
-          </div>
-        ))}
-        {isLoading && <p className="italic text-gray-400">AI thinking…</p>}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="p-4 border-t flex gap-3 bg-white"
-      >
-        {allowImages && (
-          <>
+          {history.map((m, i) => (
+            <div
+              key={i}
+              className={`flex ${
+                m.role === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div
+                className={`max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl shadow-sm break-words ${
+                  m.role === "user"
+                    ? "bg-blue-600 text-white rounded-tr-sm"
+                    : "bg-white border rounded-tl-sm"
+                } ${m.isError ? "border-red-300 text-red-600" : ""}`}
+              >
+                {m.file && (
+                  <div className="text-[10px] opacity-60 mb-1 truncate">
+                    📎 {m.file.name}
+                  </div>
+                )}
+                <div className="text-sm whitespace-pre-wrap">{m.text}</div>
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-slate-200 h-10 w-24 rounded-xl animate-pulse" />
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      {/* INPUT */}
+      <footer className="bg-white border-t shadow-lg z-10 flex-shrink-0">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex items-center gap-2 bg-slate-50 border rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-orange-200">
+            {allowImages && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-slate-400 hover:bg-slate-200 p-2 rounded-lg"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
+                />
+                <AttachIcon />
+              </button>
+            )}
+
             <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={handleFileChange}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={
+                attachedFile ? `Attached: ${attachedFile.name}` : placeholder
+              }
+              className="flex-1 bg-transparent outline-none text-sm min-w-0"
+              disabled={isLoading}
             />
-            <button type="button" onClick={() => fileInputRef.current?.click()}>
-              <AttachIcon />
+
+            <button
+              onClick={handleSend}
+              disabled={isLoading || (!inputText.trim() && !attachedFile)}
+              className="bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-30 flex-shrink-0 transition-opacity"
+            >
+              {isLoading ? "..." : "SEND"}
             </button>
-          </>
-        )}
-
-        <input
-          className="flex-1 border rounded-full px-4 py-2"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder={placeholder}
-          disabled={isLoading}
-        />
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-orange-600 text-white px-5 rounded-full"
-        >
-          Send
-        </button>
-      </form>
+          </div>
+          <p className="text-[10px] text-center text-slate-400 mt-2">
+            Powered by Gemini 1.5 Flash • Max {maxFileSizeMB}MB
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
