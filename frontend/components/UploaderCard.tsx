@@ -37,7 +37,7 @@ export default function UploaderCard() {
   const profilePath = `/uploaderprofile/${uploader.id}`;
 
   return (
-    <section className="flex items-center justify-center min-h-[400px] bg-[#FAF3E1] p-4 font-sans">
+    <section className="flex items-center justify-center min-h-[400px] p-4 font-sans">
       <div className="w-full max-w-2xl bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-[#F5E7C6]/50">
         <div className="flex flex-col gap-8">
           {/* Header */}
