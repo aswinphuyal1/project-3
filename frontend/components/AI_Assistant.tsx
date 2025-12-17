@@ -276,7 +276,7 @@ const AI_Assistant: React.FC<AIAssistantProps> = ({
             </button>
           </div>
           <p className="text-[10px] text-center text-slate-400 mt-2">
-            Powered by Gemini 1.5 Flash • Max {maxFileSizeMB}MB
+            • Max {maxFileSizeMB}MB
           </p>
         </div>
       </footer>
