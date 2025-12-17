@@ -114,8 +114,8 @@ const FullWidthSearchBar = () => {
                   </h3>
                   <div className="space-y-1">
                     {[
-                      "API Authentication Flow",
-                      "Project Roadmap 2025",
+                      "physics",
+                    
                       "User Persona Research",
                     ].map((item) => (
                       <button
