@@ -76,9 +76,9 @@ export default function ProfileBanner({ userData }: ProfileBannerProps) {
                 <img
                   src={data.imageUrl}
                   alt={`${data.name}'s profile`}
-                  fill
+                  
                   className="object-cover"
-                  priority
+                  
                 />
               </div>
               <div className="absolute bottom-2 right-2 bg-[#FF6D1F] p-2.5 rounded-full border-4 border-white shadow-lg">
