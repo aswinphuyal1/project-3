@@ -5,9 +5,10 @@ import React from 'react'
 const page = () => {
   return (
     <div>
-     
-      <UploaderCard/></div>
-  )
+      <NotePreviewCard />
+      <UploaderCard />
+    </div>
+  );
 }
 
 export default page
