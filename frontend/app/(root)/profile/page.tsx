@@ -1,5 +1,5 @@
 
-import { ModernAnalytics } from '@/components/ModernAnalytics';
+import { ProfileAnalyticsChart } from '@/components/ProfileAnalyticsChart';
 import ProfileBanner from '@/components/ProfileBanner'
 import WelcomeCard from '@/components/welcome'
 import React from 'react'
@@ -9,8 +9,7 @@ const page = () => {
     <div>
       <WelcomeCard/>
       <ProfileBanner/>
-      
-      <ModernAnalytics/>
+      <ProfileAnalyticsChart/>
     </div>
   );
 }
