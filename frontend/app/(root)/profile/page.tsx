@@ -1,8 +1,12 @@
+import WelcomeCard from '@/components/welcome'
 import React from 'react'
 
 const page = () => {
   return (
-    <div>page</div>
+    <div>
+<WelcomeCard/>
+
+    </div>
   )
 }
 
