@@ -1,193 +1,262 @@
-import React from "react";
-import {
-  Upload,
-  ChevronDown,
-  LayoutGrid,
-  FileText,
-  Plus,
-  Check,
-} from "lucide-react";
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { Upload, LayoutGrid, FileText, Plus, Check, X } from "lucide-react";
 
 /**
- * UploadNotesComponent
- * A self-contained component for the knowledge-sharing platform.
- * Uses Tailwind CSS and Lucide-React.
+ * UploadNotesComponent - Optimized for Next.js
+ * Removed Chevron arrows from Title & Description.
+ * Palette: #FAF3E1, #F5E7C6, #FF6D1F, #222222
  */
-const UploadNotesComponent = () => {
-  // --- Internal Reusable Sub-Components ---
+export default function UploadNotesComponent() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setSelectedFile(file);
+      if (file.type.startsWith("image/")) {
+        setPreviewUrl(URL.createObjectURL(file));
+      } else {
+        setPreviewUrl(null);
+      }
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+  };
 
   const FormInput = ({
     placeholder,
     icon: Icon,
     label,
+    id,
+    required = false,
   }: {
     placeholder: string;
     icon?: any;
-    label?: string;
+    label: string;
+    id: string;
+    required?: boolean;
   }) => (
-    <div className="w-full space-y-1">
-      {label && (
-        <label className="text-sm font-semibold text-[#222222]/70 ml-1">
-          {label}
+    <div className="w-full space-y-1.5">
+      <div className="flex justify-between items-center ml-1">
+        <label htmlFor={id} className="text-sm font-bold text-[#222222]">
+          {label} {required && <span className="text-[#FF6D1F]">*</span>}
         </label>
-      )}
+        {!required && (
+          <span className="text-[10px] uppercase tracking-wider text-[#222222]/40 font-bold">
+            Optional
+          </span>
+        )}
+      </div>
       <div className="relative">
         <input
+          id={id}
           type="text"
           placeholder={placeholder}
-          className="w-full bg-[#FAF3E1] border border-transparent rounded-xl py-3 px-4 text-[#222222] placeholder-[#222222]/40 focus:outline-none focus:ring-2 focus:ring-[#FF6D1F]/20 transition-all"
+          aria-required={required}
+          className="w-full bg-[#FAF3E1] border-2 border-transparent rounded-xl py-3 px-4 text-[#222222] placeholder-[#222222]/30 focus:outline-none focus:border-[#FF6D1F]/30 transition-all"
         />
         {Icon && (
-          <Icon className="absolute right-4 top-3.5 text-[#222222]/40 w-5 h-5" />
+          <Icon
+            className="absolute right-4 top-3.5 text-[#222222]/30 w-5 h-5"
+            aria-hidden="true"
+          />
         )}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 md:p-8">
-      {/* Main Container - White Background as requested */}
-      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-xl p-8 md:p-14 relative overflow-hidden">
-        {/* Header Section */}
-        <div className="flex justify-between items-start mb-10">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-extrabold text-[#222222] tracking-tight">
-              Upload New Notes
-            </h1>
-            <h2 className="text-2xl font-medium text-[#222222]/80">
-              Mathematics
-            </h2>
-          </div>
-          <button className="text-[#FF6D1F] bg-[#FAF3E1] hover:bg-[#F5E7C6] transition-colors px-5 py-1.5 rounded-lg text-sm font-bold shadow-sm">
-            View All
-          </button>
-        </div>
+    <main className="min-h-screen bg-[#FAF3E1]/30 flex items-center justify-center p-4 md:p-10 font-sans">
+      <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl shadow-[#222222]/5 p-8 md:p-16">
+        <input
+          id="note-file-upload"
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept=".pdf,.docx,.png,.jpg,.jpeg"
+          aria-label="Upload note file"
+        />
+
+        <header className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-black text-[#222222] tracking-tight">
+            Upload New Notes
+          </h1>
+          <h2 className="text-2xl font-semibold text-[#222222]/40 mt-2">
+            Mathematics
+          </h2>
+        </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Left Column: File Upload & Actions */}
-          <div className="flex flex-col space-y-8">
-            {/* Drag & Drop Area */}
-            <div className="border-2 border-dashed border-[#222222]/10 rounded-[2rem] p-12 flex flex-col items-center justify-center bg-white hover:border-[#FF6D1F] transition-all cursor-pointer group">
-              <div className="bg-[#FF6D1F] p-5 rounded-2xl mb-6 shadow-lg shadow-[#FF6D1F]/30 group-hover:scale-110 transition-transform">
-                <Upload className="text-white w-10 h-10" />
+          {/* Left Column */}
+          <div className="flex flex-col h-full">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Click to browse and upload files"
+              className="flex-1 min-h-[300px] border-2 border-dashed border-[#222222]/10 rounded-[2.5rem] flex flex-col items-center justify-center bg-white hover:border-[#FF6D1F] group cursor-pointer transition-all mb-8 w-full"
+            >
+              <div className="bg-[#FF6D1F] p-6 rounded-2xl mb-6 shadow-xl shadow-[#FF6D1F]/20 group-hover:scale-110 transition-transform">
+                <Upload className="text-white w-10 h-10" aria-hidden="true" />
               </div>
-              <p className="text-[#222222] text-lg font-medium text-center leading-relaxed">
-                Drag & Drop your files
+              <p className="text-[#222222] text-xl font-bold text-center leading-tight px-6">
+                {selectedFile ? "Ready to switch?" : "Drag & Drop your files"}
                 <br />
-                here or{" "}
-                <span className="text-[#FF6D1F] font-bold underline decoration-2 underline-offset-4">
-                  Browse
+                <span className="text-[#FF6D1F] underline underline-offset-8">
+                  Browse files
                 </span>
               </p>
-            </div>
+            </button>
 
-            {/* Constraints/Info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-[#222222]/60 font-medium">
-                <div className="w-6 h-6 rounded-md bg-[#FAF3E1] flex items-center justify-center border border-[#222222]/10">
-                  <Check
-                    className="w-3.5 h-3.5 text-[#222222]"
-                    strokeWidth={3}
-                  />
-                </div>
+            <div className="space-y-4 mb-10">
+              <div className="flex items-center gap-3 text-sm font-bold text-[#222222]/50">
+                <Check
+                  className="w-5 h-5 text-[#FF6D1F]"
+                  strokeWidth={3}
+                  aria-hidden="true"
+                />
                 <span>PDF, DOCX, PNG, JPG</span>
               </div>
-              <div className="flex items-center gap-3 text-[#222222]/60 font-medium">
-                <div className="w-6 h-6 rounded-md bg-[#FAF3E1] flex items-center justify-center border border-[#222222]/10">
-                  <div className="w-2 h-2 bg-[#222222]/40 rounded-full"></div>
-                </div>
-                <span>Support size 10MB/file</span>
+              <div className="flex items-center gap-3 text-sm font-bold text-[#222222]/50">
+                <div
+                  className="w-2 h-2 bg-[#FF6D1F] rounded-full animate-pulse"
+                  aria-hidden="true"
+                />
+                <span>Max size: 10MB</span>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-auto">
-              <button className="flex-1 bg-[#FF6D1F] text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#FF6D1F]/30 active:scale-[0.98] transition-all">
-                Download Note
-              </button>
-              <button className="flex-1 border-2 border-[#FF6D1F] text-[#FF6D1F] py-4 rounded-xl font-bold text-lg hover:bg-[#FF6D1F]/5 active:scale-[0.98] transition-all">
-                Publish Notes
-              </button>
-            </div>
+            <button
+              disabled={!selectedFile}
+              className="w-full bg-[#FF6D1F] text-white py-5 rounded-[1.25rem] font-black text-xl hover:shadow-2xl hover:shadow-[#FF6D1F]/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+            >
+              Publish Notes
+            </button>
           </div>
 
-          {/* Right Column: Form Details */}
-          <div className="flex flex-col space-y-6">
-            <h3 className="text-xl font-bold text-[#222222] pb-2 border-b-2 border-[#FAF3E1] inline-block w-fit">
-              Note Details
-            </h3>
-
-            <div className="space-y-4">
-              <FormInput placeholder="Title" icon={ChevronDown} />
-              <FormInput placeholder="Description" icon={ChevronDown} />
-
-              <div className="grid grid-cols-1 gap-4 pt-2">
-                <FormInput
-                  label="Subject"
-                  placeholder="Subject"
-                  icon={LayoutGrid}
-                />
-                <FormInput
-                  label="Semester"
-                  placeholder="Semester"
-                  icon={LayoutGrid}
-                />
-              </div>
+          {/* Right Column */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-3 border-b-2 border-[#FAF3E1]">
+              <div
+                className="w-2 h-6 bg-[#FF6D1F] rounded-full"
+                aria-hidden="true"
+              />
+              <h3 className="text-xl font-black text-[#222222]">
+                Note Details
+              </h3>
             </div>
 
-            {/* Tags Toggle Style */}
-            <div className="flex items-center justify-between py-2 group cursor-pointer">
-              <span className="font-bold text-[#222222]/80">Tags</span>
-              <div className="flex flex-col gap-1 items-end">
-                <div className="w-5 h-0.5 bg-[#222222]/30 group-hover:bg-[#FF6D1F] transition-colors"></div>
-                <div className="w-3 h-0.5 bg-[#222222]/30 group-hover:bg-[#FF6D1F] transition-colors"></div>
-              </div>
+            <div className="space-y-5">
+              {/* REMOVED ChevronDown icon from these two fields */}
+              <FormInput
+                id="note-title"
+                label="Title"
+                placeholder="Enter title"
+                required
+              />
+              <FormInput
+                id="note-desc"
+                label="Description"
+                placeholder="Short summary"
+                required
+              />
+
+              <FormInput
+                id="note-subject"
+                label="Subject"
+                placeholder="e.g. Algebra"
+                icon={LayoutGrid}
+              />
+              <FormInput
+                id="note-semester"
+                label="Semester"
+                placeholder="e.g. Semester 2"
+                icon={LayoutGrid}
+              />
             </div>
 
-            {/* File Info Bar */}
-            <div className="bg-[#FAF3E1] rounded-xl px-5 py-3.5 flex justify-between items-center border border-[#F5E7C6]">
-              <span className="text-[#222222]/50 font-medium">
-                Preview Image
+            <div className="bg-[#FAF3E1] rounded-2xl px-6 py-4 flex justify-between items-center">
+              <span className="text-[#222222]/40 font-bold text-sm">
+                Actual File Size
               </span>
-              <span className="text-[#222222] font-black tracking-tighter">
-                5.6 KB
+              <span className="text-[#222222] font-black text-lg">
+                {selectedFile ? formatFileSize(selectedFile.size) : "0.0 KB"}
               </span>
             </div>
 
-            {/* Preview Card */}
-            <div className="bg-[#F5E7C6]/40 border border-[#F5E7C6] rounded-2xl p-4 flex items-center justify-between group hover:bg-[#F5E7C6]/60 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-3 rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
-                  <FileText className="text-[#222222]/30 w-8 h-8" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-[#222222]/40 font-bold uppercase tracking-widest italic">
-                      / Preview Image
-                    </span>
+            {selectedFile && (
+              <div className="bg-[#F5E7C6]/40 border-2 border-[#F5E7C6] rounded-[2rem] p-5 flex items-center justify-between group">
+                <div className="flex items-center gap-4 truncate">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt="File Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FileText
+                        className="text-[#FF6D1F] w-8 h-8"
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
-                  <p className="text-sm font-semibold text-[#222222]/70">
-                    (os the tiplales)
-                  </p>
+                  <div className="truncate">
+                    <p className="text-[10px] text-[#FF6D1F] font-black tracking-widest uppercase">
+                      File Preview
+                    </p>
+                    <p className="text-sm font-bold text-[#222222] truncate">
+                      {selectedFile.name}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                  }}
+                  aria-label="Remove selected file"
+                  title="Remove selected file"
+                  className="p-3 bg-white rounded-xl hover:bg-red-50 text-[#222222]/20 hover:text-red-500 transition-all shadow-sm"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-[#222222]/5 shadow-sm">
-                <div className="w-5 h-5 bg-[#222222]/20 rounded-md"></div>
-              </div>
-            </div>
+            )}
 
-            {/* Add More Action */}
-            <button className="flex items-center gap-3 text-[#222222]/40 font-bold text-sm hover:text-[#FF6D1F] transition-colors w-fit group">
-              <div className="bg-[#222222]/10 group-hover:bg-[#FF6D1F]/10 p-1 rounded-full transition-colors">
-                <Plus className="w-4 h-4" strokeWidth={3} />
-              </div>
-              Preview Image
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 text-[#222222]/30 font-black text-xs hover:text-[#FF6D1F] transition-all"
+            >
+              <Plus
+                className="w-5 h-5 p-1 bg-[#222222]/5 rounded-full"
+                strokeWidth={4}
+                aria-hidden="true"
+              />
+              {selectedFile ? "CHANGE FILE" : "ADD PREVIEW"}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default UploadNotesComponent;
+}
