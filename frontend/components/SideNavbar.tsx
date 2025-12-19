@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { id: 4, label: "Live Sessions", icon: Video, path: "/live" },
   { id: 5, label: "AI Assistant", icon: Brain, path: "/ai" },
   { id: 6, label: "My Profile", icon: User, path: "/profile" },
+  { id: 6, label: "Upload", icon: NotebookText, path: "/upload" },
   { id: 7, label: "Settings", icon: Settings, path: "/setting" },
 ];
 
