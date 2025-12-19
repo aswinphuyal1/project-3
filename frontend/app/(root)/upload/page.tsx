@@ -1,8 +1,12 @@
+import UploadNotesComponent from '@/components/UploadNotesComponent'
+import { Upload } from 'lucide-react'
 import React from 'react'
 
 const page = () => {
   return (
-    <div>page</div>
+     <div>
+<UploadNotesComponent/>
+    </div>
   )
 }
 
