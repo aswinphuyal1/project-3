@@ -1,3 +1,4 @@
+//npm i cors dotenv express jsonwebtoken mongoose multer nodemon validator bcrypt
 
 import express from "express";
 import cors from "cors";
