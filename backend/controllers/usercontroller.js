@@ -1,14 +1,17 @@
+
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import usermodel from "../models/usermodel.js";
+import supabase from "../config/supabase.js";
+
 const createtoken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET);
 };
 const loginuser = async (req, res) => {
   try {
-    const {email, password } = req.body;
-    const user =  await usermodel.findOne({ email });
+    const { email, password } = req.body;
+    const user = await usermodel.findOne({ email });
     if (!user) {
       res.json({ success: false, message: "user donot exist create account" });
     }
@@ -26,7 +29,7 @@ const loginuser = async (req, res) => {
 };
 const registeruser = async (req, res) => {
   try {
-    const {name,email,password } = req.body;
+    const { name, email, password } = req.body;
     const exist = await usermodel.findOne({ email });
     if (exist) {
       res.json({ success: false, message: "user already exist" });
@@ -81,4 +84,64 @@ const adminlogin = async (req, res) => {
   }
 };
 
-export { loginuser, registeruser, adminlogin };
+const supabaseLogin = async (req, res) => {
+  try {
+    const { access_token } = req.body;
+    if (!access_token)
+      return res.json({ success: false, message: "Missing access_token" });
+
+    const { data, error } = await supabase.auth.getUser(access_token);
+    if (error || !data?.user)
+      return res.json({ success: false, message: "Invalid Supabase token" });
+
+    const supaUser = data.user;
+    const supabase_id = supaUser.id;
+    const email = supaUser.email;
+    const name =
+      supaUser.user_metadata?.full_name ||
+      supaUser.user_metadata?.name ||
+      email?.split("@")[0] ||
+      "User";
+
+    const provider =
+      supaUser?.identities?.[0]?.provider === "github" ? "github" : "google";
+
+    if (!email)
+      return res.json({
+        success: false,
+        message: "Email not available from provider",
+      });
+
+    const existing = await usermodel.findOne({ email });
+
+    if (existing) {
+      if (existing.provider === "local") {
+        return res.json({
+          success: false,
+          message: "Email already registered via password. Use normal login.",
+        });
+      }
+      if (!existing.supabase_id) {
+        existing.supabase_id = supabase_id;
+        await existing.save();
+      }
+      const token = createtoken(existing._id);
+      return res.json({ success: true, token });
+    }
+
+    const newuser = await usermodel.create({
+      name,
+      email,
+      supabase_id,
+      provider,
+    });
+
+    const token = createtoken(newuser._id);
+    res.json({ success: true, token });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export { loginuser, registeruser, adminlogin, supabaseLogin };

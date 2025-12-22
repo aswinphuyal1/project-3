@@ -1,0 +1,188 @@
+the image is of backend structure .now cofig filr is all done and woring fine import validator from "validator";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import usermodel from "../models/usermodel.js";
+import supabase from "../config/supabase.js";
+import { use } from "react";
+const createtoken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET);
+};
+const loginuser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await usermodel.findOne({ email });
+    if (!user) {
+      res.json({ success: false, message: "user donot exist create account" });
+    }
+    const ismatch = await bcrypt.compare(password, user.password);
+    if (ismatch) {
+      const token = createtoken(user._id);
+      res.json({ success: true, token });
+    } else {
+      res.json({ success: false, message: "incorrect password" });
+    }
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+const registeruser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const exist = await usermodel.findOne({ email });
+    if (exist) {
+      res.json({ success: false, message: "user already exist" });
+    }
+    if (!validator.isEmail(email)) {
+      return res.json({
+        success: "false",
+        message: "Enter the valid email",
+      });
+    }
+
+    if (password.length < 8) {
+      res.json({
+        success: false,
+        message: "type a stronger password",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(20);
+    const hashedpassword = await bcrypt.hash(password, salt);
+    const newuser = new usermodel({
+      name,
+      email,
+      password: hashedpassword,
+    });
+    const user = await newuser.save();
+    const token = createtoken(user._id);
+    res.json({ success: true, token });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const adminlogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (
+      email == process.env.ADMIN_EMAIL &&
+      password == process.env.ADMIN_PASSWORD
+    ) {
+      const token = jwt.sign(email + password, process.env.JWT_SECRET);
+      res.json({ success: true, token });
+    } else {
+      res.json({ success: false, message: "invalid user" });
+    }
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const supabaseLogin = async (req, res) => {
+  try {
+    const { supabase_id, email, name } = req.body;
+    let user = await usermodel.findOne({
+      supabase_id,
+    });
+    if (!user) {
+      user = await usermodel.create({
+        supabase_id,
+        email,
+        name,
+      });
+
+      const token = createtoken(user._id);
+      res.json({ success: true, token });
+    }
+  } catch (error) {
+    console.log({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { loginuser, registeruser, adminlogin, supabaseLogin };
+do not worry about admin login from here  and this is   code of usercontoller.js import jwt from "jsonwebtoken";
+const authuser = async (req, res, next) => {
+  const { token } = req.header;
+  if (!token) {
+    return res.json({
+      success: false,
+      message: "you are not authorize",
+    });
+  }
+  try {
+    const tokendedcode = await jwt.verify(token, process.env.JWT_SECRET);
+req.body.userid=tokendedcode.id
+next();
+
+} catch (error) {
+    console.log(error);
+    res.json({
+        success:false,
+        message:error.message
+    })
+}
+};
+export default authuser
+ this is the code of auth.js import mongoose from "mongoose";
+const userschema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  supabase_id: { type: String, unique: true },
+});
+const usermodel=mongoose.models.user||mongoose.model("user",userschema)
+export default usermodel this is code of ussermodel.js import express from "express";
+import {
+  loginuser,
+  registeruser,
+  adminlogin,
+  supabaseLogin
+} from "../controllers/usercontroller.js";
+
+const userrouter = express.Router();
+
+userrouter.post("/register", registeruser);
+userrouter.post("/login", loginuser);
+userrouter.post("/admin", adminlogin);
+userrouter.post("/supabase-login",supabaseLogin);
+export default userrouter;
+this is code of userroute .js .this is code of //npm i cors dotenv express jsonwebtoken mongoose multer nodemon validator bcrypt
+
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
+
+import connectdb from "./config/mongodb.js";
+import connectcloudinary from "./config/cloudinary.js";
+import userrouter from "./routes/userroute.js";
+
+//app config
+const app = express();
+const port = process.env.PORT || 4000;
+
+connectdb();
+connectcloudinary();
+//middlewares
+app.use(express.json());
+app.use(cors());
+/*
+CORS allows your API to be accessed from different domains.
+Without it, browsers block requests from frontends on different ports/domains.
+Example: Frontend on localhost:3000 can call backend on localhost:4000
+*/
+
+app.use("/api/user", userrouter);
+app.get("/", (req, res) => {
+  res.send("Api working");
+});
+
+app.listen(port, () => console.log("serve started on port :", port));
+this is code of server.js 
