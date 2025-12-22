@@ -8,7 +8,7 @@ const createtoken = (id) => {
 const loginuser = async (req, res) => {
   try {
     const {email, password } = req.body;
-    const user = usermodel.findOne({ email });
+    const user =  await usermodel.findOne({ email });
     if (!user) {
       res.json({ success: false, message: "user donot exist create account" });
     }
