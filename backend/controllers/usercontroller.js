@@ -70,7 +70,7 @@ const token =createtoken(user._id);
 res.json({ success: true, token });
 } catch (error) {
     res.json({
-success:true,
+success:false,
 message:error.message
 })
 }
