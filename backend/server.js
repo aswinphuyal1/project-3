@@ -6,11 +6,11 @@ import "dotenv/config";
 
 import connectdb from "./config/mongodb.js";
 import connectcloudinary from "./config/cloudinary.js";
+import userrouter from "./routes/userroute.js";
 
 //app config
 const app = express();
 const port = process.env.PORT || 4000;
-
 
 connectdb();
 connectcloudinary();
@@ -23,7 +23,7 @@ Without it, browsers block requests from frontends on different ports/domains.
 Example: Frontend on localhost:3000 can call backend on localhost:4000
 */
 
-
+app.use("/api/user", userrouter);
 app.get("/", (req, res) => {
   res.send("Api working");
 });
