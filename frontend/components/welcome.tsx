@@ -2,10 +2,11 @@
 "use client";
 import React, { useCallback } from "react";
 import { CupSoda, Eye, Award } from "lucide-react";
+import { useAuth } from "@/context/Authcontext";
 
 // --- Default Data for quick mounting ---
 const DUMMY_USER_DATA = {
-  username: "Aswin phuyal",
+  name: "Aswin phuyal",
   points: 1250,
   donations: 2500, // $25.00
   totalViews: 5800,
@@ -32,27 +33,30 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon }) => {
 
 // --- Main Component: Welcome Card ---
 interface WelcomeCardProps {
-  username?: string;
+  name?: string;
   points?: number;
   donations?: number; // Cents equivalent (e.g., 2500 for $25.00)
   totalViews?: number;
   onViewAllClick?: () => void;
 }
 
-const WelcomeCard: React.FC<WelcomeCardProps> = ({
-  username = DUMMY_USER_DATA.username,
-  points = DUMMY_USER_DATA.points,
-  donations = DUMMY_USER_DATA.donations,
-  totalViews = DUMMY_USER_DATA.totalViews,
-  onViewAllClick,
-}) => {
+const WelcomeCard: React.FC<WelcomeCardProps> = (props) => {
+  // move hook inside component
+  const { user } = useAuth();
+
+  // derive values with fallbacks
+  const name = props.name ?? user?.name ?? DUMMY_USER_DATA.name;
+  const points = props.points ?? DUMMY_USER_DATA.points;
+  const donations = props.donations ?? DUMMY_USER_DATA.donations;
+  const totalViews = props.totalViews ?? DUMMY_USER_DATA.totalViews;
+  const { onViewAllClick } = props;
+
   // Use a default alert if no specific function is provided
   const handleViewAll = useCallback(() => {
     if (onViewAllClick) {
       onViewAllClick();
     } else {
       console.log("View All clicked! (Default action)");
-      // Optional: Add a subtle user feedback here like an alert if this is truly a standalone demo
     }
   }, [onViewAllClick]);
 
@@ -67,7 +71,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({
     <div className="p-4 sm:p-6 md:p-8 max-w-full md:max-w-4xl mx-auto rounded-3xl bg-white shadow-2xl shadow-gray-300 border border-[#F5E7C6]">
       <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222]">
-          Welcome Back, <span className="text-[#FF6D1F]">{username}</span>
+          Welcome Back, <span className="text-[#FF6D1F]">{name}</span>
         </h2>
 
         {/* 'View All' Button */}
