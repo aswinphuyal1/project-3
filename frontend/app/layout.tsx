@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-// Assuming Geist and Geist_Mono are correctly imported or defined
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/Authcontext";
+import AuthGuard from "@/components/AuthGuard";
 
-// Assuming these fonts are correctly defined/available
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -15,15 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // 1. Better, keyword-rich title
   title:
     "NotesShare: Unlock Knowledge | AI-Powered Notes, Live Learning & Creator Platform",
-
-  // 2. Descriptive, keyword-rich description mentioning core features
   description:
     "The ultimate web platform for students and creators. Upload, explore, and master educational notes, PDFs, and resources. Features include AI assistance, live streaming, real-time chat, rewards, and creator donations.",
-
-  // 3. Add keywords (optional but helpful)
   keywords: [
     "NotesShare",
     "educational notes",
@@ -35,7 +30,6 @@ export const metadata: Metadata = {
     "PDF sharing",
     "knowledge sharing",
   ],
-
 };
 
 export default function RootLayout({
@@ -46,8 +40,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <AuthProvider>
+          <AuthGuard>{children}</AuthGuard>
+        </AuthProvider>
       </body>
     </html>
   );

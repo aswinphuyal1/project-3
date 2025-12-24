@@ -1,8 +1,7 @@
-// NoteshareNavbar.tsx
-
+"use client";
 import React from "react";
+import { useAuth } from "@/context/Authcontext"; // ✅ import context
 
-// Define the type for a navigation item
 interface NavItem {
   name: string;
   href: string;
@@ -16,6 +15,8 @@ const navItems: NavItem[] = [
 ];
 
 const Navbar: React.FC = () => {
+  const { user, logout } = useAuth(); // ✅ get user + logout
+
   return (
     <nav className="flex flex-wrap items-center justify-between h-16 w-full px-4 sm:px-6 md:px-12 bg-white border-b border-gray-100">
       {/* --- Left Section: Noteshare Logo/Brand --- */}
@@ -29,8 +30,7 @@ const Navbar: React.FC = () => {
         </a>
       </div>
 
-      {/* --- Right Section: Navigation Links and Button --- */}
-      {/* 3. Use 'space-x-2' for small, tight spacing between the links themselves (as seen in the original image) */}
+      {/* --- Right Section: Navigation Links and Auth Button --- */}
       <div className="flex items-center space-x-2">
         {navItems.map((item) => (
           <a
@@ -40,10 +40,8 @@ const Navbar: React.FC = () => {
               p-2.5 text-base font-medium text-gray-700 rounded-full transition-colors duration-200
               ${
                 item.isHighlighted
-                  ? // Styling for 'Resources' (light gray background, rounded-full shape)
-                    "bg-gray-100 hover:bg-gray-200"
-                  : // Styling for standard links
-                    "hover:text-gray-900 hover:bg-gray-50"
+                  ? "bg-gray-100 hover:bg-gray-200"
+                  : "hover:text-gray-900 hover:bg-gray-50"
               }
             `}
           >
@@ -51,20 +49,34 @@ const Navbar: React.FC = () => {
           </a>
         ))}
 
-        {/* --- The Dark Button ('Access For Web') --- */}
-        {/* 4. Use a slightly larger margin 'ml-4' to visually separate the button from the last nav link */}
-        <a
-          href="/login"
-          className="
-            ml-4 px-4 py-2.5 text-sm font-medium
-            text-white bg-black rounded-full
-            shadow-lg transition-shadow duration-200
-            hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black
-            whitespace-nowrap
-          "
-        >
-          create account
-        </a>
+        {/* ✅ Show only one button depending on login state */}
+        {user ? (
+          <button
+            onClick={logout}
+            className="
+              ml-4 px-4 py-2.5 text-sm font-medium
+              text-white bg-red-600 rounded-full
+              shadow-lg transition-shadow duration-200
+              hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600
+              whitespace-nowrap
+            "
+          >
+            Logout
+          </button>
+        ) : (
+          <a
+            href="/create-account"
+            className="
+              ml-4 px-4 py-2.5 text-sm font-medium
+              text-white bg-black rounded-full
+              shadow-lg transition-shadow duration-200
+              hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black
+              whitespace-nowrap
+            "
+          >
+            Create account
+          </a>
+        )}
       </div>
     </nav>
   );

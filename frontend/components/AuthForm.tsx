@@ -2,8 +2,8 @@
 import React, { useState, useMemo, FormEvent } from "react";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { useAuth } from "@/context/Authcontext";
- // <-- import context
+import { useAuth } from "@/context/Authcontext"; // <-- import context
+import { useRouter } from "next/navigation"; // ✅ add router
 
 type AuthFormType = "createaccount" | "login";
 
@@ -84,6 +84,7 @@ interface AuthFormProps {
 
 const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const { register, login, loginWithProvider, loading } = useAuth(); // <-- use context
+  const router = useRouter(); // ✅ add router
 
   const [showPassword, setShowPassword] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -109,10 +110,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
 
     if (isCreateAccount) {
       const ok = await register(profileName, email, password);
-      if (ok) console.log("Registered successfully");
+      if (ok) {
+        console.log("Registered successfully");
+        router.push("/login"); // ✅ redirect to login after registration
+      }
     } else {
       const ok = await login(email, password);
-      if (ok) console.log("Logged in successfully");
+      if (ok) {
+        console.log("Logged in successfully");
+        router.push("/home"); // ✅ redirect to home after login
+      }
     }
   };
 
@@ -199,6 +206,33 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
             label="GitHub"
             onClick={() => loginWithProvider("github")}
           />
+        </div>
+
+        {/* ✅ Add redirect links */}
+        <div className="mt-6 text-center text-sm text-gray-600">
+          {isCreateAccount ? (
+            <p>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="text-black font-medium hover:underline"
+              >
+                Log in
+              </button>
+            </p>
+          ) : (
+            <p>
+              Don’t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/create-account")}
+                className="text-black font-medium hover:underline"
+              >
+                Create one
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>
