@@ -1,8 +1,11 @@
 import React from 'react'
-
+import MessageSidebar from '@/components/Messagesidebar'
 const page = () => {
   return (
-    <div>page</div>
+    <div>
+      <MessageSidebar/>
+
+    </div>
   )
 }
 
