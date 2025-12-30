@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback } from "react";
 import { CupSoda, Eye, Award, TrendingUp } from "lucide-react";
+import { useAuth } from "../context/Authcontext";
 
 // --- Sub-Component: Reusable Stat Card ---
 interface StatCardProps {
@@ -20,11 +21,10 @@ const StatCard: React.FC<StatCardProps> = ({
     <div className="flex-1 min-w-[200px] bg-white rounded-[24px] p-6 border border-[#F5E7C6] transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
       <div className="flex items-center justify-between mb-4">
         <div
-          className={`p-3 rounded-2xl ${
-            variant === "orange"
-              ? "bg-[#FF6D1F]/10 text-[#FF6D1F]"
-              : "bg-[#222222]/10 text-[#222222]"
-          }`}
+          className={`p-3 rounded-2xl ${variant === "orange"
+            ? "bg-[#FF6D1F]/10 text-[#FF6D1F]"
+            : "bg-[#222222]/10 text-[#222222]"
+            }`}
         >
           <Icon size={24} strokeWidth={2.5} />
         </div>
@@ -52,12 +52,18 @@ interface WelcomeForProfileProps {
   totalViews?: number;
 }
 
+
+
 export default function WelcomeForProfile({
   username = "Aswin Phuyal",
   points = 1250,
   donations = 2500,
   totalViews = 5800,
 }: WelcomeForProfileProps) {
+  const { user } = useAuth();
+
+  // Use context user name if available, otherwise fall back to props
+  const displayName = user?.name || username;
   // Format data
   const formattedDonations = `$${(donations / 100).toFixed(2)}`;
   const formattedViews = totalViews.toLocaleString();
@@ -81,7 +87,7 @@ export default function WelcomeForProfile({
               </div>
               <h1 className="text-5xl lg:text-7xl font-black text-[#222222] leading-[0.9] tracking-tight">
                 Welcome Back, <br />
-                <span className="text-[#FF6D1F]">{username}</span>
+                <span className="text-[#FF6D1F]">{displayName}</span>
               </h1>
               <p className="text-[#222222]/50 text-lg lg:text-xl font-medium max-w-2xl leading-relaxed">
                 Your knowledge-sharing journey is growing. Here is a snapshot of

@@ -1,6 +1,8 @@
+"use client";
 import React from "react";
 import Image from "next/image";
 import { DollarSign, Eye, TrendingUp, LucideIcon } from "lucide-react";
+import { useAuth } from "../context/Authcontext";
 
 // 1. Separate Reusable Sub-component for Stats
 interface StatCardProps {
@@ -41,6 +43,16 @@ const StatCard = ({
   );
 };
 
+// ... existing imports ...
+
+// ... StatCard component ...
+
+// 2. Main Component
+
+// ... existing imports ...
+
+// ... StatCard component ...
+
 // 2. Main Component
 interface ProfileBannerProps {
   userData?: {
@@ -53,12 +65,13 @@ interface ProfileBannerProps {
 }
 
 export default function ProfileBanner({ userData }: ProfileBannerProps) {
-  // Use passed data or fall back to your sample data (Good for development/placeholders)
+  const { user } = useAuth();
+
+  // Use passed data or fall back to context/sample data
   const data = userData || {
-    name: "Dr. Sarah Lee",
+    name: user?.name || "Dr. Sarah Lee",
     bio: "Expert in digital health and wellness. Sharing insights on modern medicine and lifestyle through weekly knowledge-sharing sessions. Dedicated to making complex medical information accessible to everyone.",
-    imageUrl:
-      "https://api.dicebear.com/9.x/bottts/svg?seed=Sarah",
+    imageUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${user?.name || "Sarah"}`,
     moneyEarned: "1,250.00",
     totalViews: "45,200",
   };
