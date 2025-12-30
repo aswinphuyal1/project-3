@@ -9,7 +9,7 @@ const authuser = async (req, res, next) => {
   }
   try {
     const tokendedcode = await jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = tokendedcode.id
+    req.body.userid = tokendedcode.id
     next();
 
   } catch (error) {
