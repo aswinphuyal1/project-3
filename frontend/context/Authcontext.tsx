@@ -14,8 +14,9 @@ type UserInfo = {
   id: string;
   email: string;
   name: string;
+  provider?: string;
 };
- 
+
 type AuthContextType = {
   user: UserInfo | null;
   token: string | null;
@@ -24,6 +25,8 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   loginWithProvider: (provider: Provider) => Promise<boolean>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  deleteAccount: () => Promise<{ success: boolean; message: string }>;
 };
 
 /* 
@@ -216,6 +219,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await supabase.auth.signOut();
   };
 
+  // 5. Change Password
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.post(
+        `${BACKEND_URL}/api/user/change-password`,
+        { currentPassword, newPassword },
+        { headers: { token: token } }
+      );
+      return data;
+    } catch (error: any) {
+      console.error(error);
+      return { success: false, message: error.message || "An error occurred" };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6. Delete Account
+  const deleteAccount = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${BACKEND_URL}/api/user/delete`, {
+        headers: { token: token },
+      });
+      if (data.success) {
+        logout(); // Logout after correct deletion
+      }
+      return data;
+    } catch (error: any) {
+      console.error(error);
+      return { success: false, message: error.message || "An error occurred" };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Render Provider ---
   return (
     <AuthContext.Provider
@@ -227,6 +267,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         loginWithProvider,
         logout,
+        changePassword,
+        deleteAccount,
       }}
     >
       {children}

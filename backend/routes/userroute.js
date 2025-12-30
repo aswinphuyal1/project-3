@@ -3,13 +3,18 @@ import {
   loginuser,
   registeruser,
   adminlogin,
-  supabaseLogin
+  supabaseLogin,
+  changePassword,
+  deleteAccount
 } from "../controllers/usercontroller.js";
+import authuser from "../middleware/auth.js";
 
 const userrouter = express.Router();
 
 userrouter.post("/register", registeruser);
 userrouter.post("/login", loginuser);
 userrouter.post("/admin", adminlogin);
-userrouter.post("/supabase-login",supabaseLogin);
+userrouter.post("/supabase-login", supabaseLogin);
+userrouter.post("/change-password", authuser, changePassword);
+userrouter.delete("/delete", authuser, deleteAccount);
 export default userrouter;

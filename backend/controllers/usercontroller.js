@@ -18,7 +18,7 @@ const loginuser = async (req, res) => {
     const ismatch = await bcrypt.compare(password, user.password);
     if (ismatch) {
       const token = createtoken(user._id);
-      res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email } });
+      res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, provider: user.provider } });
     } else {
       res.json({ success: false, message: "incorrect password" });
     }
@@ -58,7 +58,7 @@ const registeruser = async (req, res) => {
     });
     const user = await newuser.save();
     const token = createtoken(user._id);
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email } });
+    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, provider: user.provider } });
   } catch (error) {
     res.json({
       success: false,
@@ -147,7 +147,7 @@ const supabaseLogin = async (req, res) => {
         await existing.save();
       }
       const token = createtoken(existing._id);
-      return res.json({ success: true, token, user: { id: existing._id, name: existing.name, email: existing.email } });
+      return res.json({ success: true, token, user: { id: existing._id, name: existing.name, email: existing.email, provider: existing.provider } });
     }
 
     const newuser = await usermodel.create({
@@ -158,11 +158,66 @@ const supabaseLogin = async (req, res) => {
     });
 
     const token = createtoken(newuser._id);
-    res.json({ success: true, token, user: { id: newuser._id, name: newuser.name, email: newuser.email } });
+    res.json({ success: true, token, user: { id: newuser._id, name: newuser.name, email: newuser.email, provider: newuser.provider } });
   } catch (error) {
     console.error("Supabase Login Error:", error);
     res.json({ success: false, message: error.message });
   }
 };
 
-export { loginuser, registeruser, adminlogin, supabaseLogin };
+const changePassword = async (req, res) => {
+  try {
+    const { userId, currentPassword, newPassword } = req.body;
+    const user = await usermodel.findById(userId);
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    if (user.provider !== "local") {
+      return res.json({
+        success: false,
+        message: "You can only change password if you logged in with email/password.",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.json({ success: false, message: "Incorrect current password" });
+    }
+
+    if (newPassword.length < 8) {
+      return res.json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const deleteAccount = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const user = await usermodel.findByIdAndDelete(userId);
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, message: "Account deleted successfully" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount };
