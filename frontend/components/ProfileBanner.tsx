@@ -20,14 +20,12 @@ const StatCard = ({
 
   return (
     <div
-      className={`flex flex-col rounded-[28px] p-8 border border-[#F5E7C6] min-w-[220px] transition-all hover:translate-y-[-4px] hover:shadow-lg ${
-        isPrimary ? "bg-[#FAF3E1]" : "bg-white"
-      }`}
+      className={`flex flex-col rounded-[28px] p-8 border border-[#F5E7C6] min-w-[220px] transition-all hover:translate-y-[-4px] hover:shadow-lg ${isPrimary ? "bg-[#FAF3E1]" : "bg-white"
+        }`}
     >
       <div
-        className={`${
-          isPrimary ? "bg-[#FF6D1F]" : "bg-[#222222]"
-        } w-fit p-3 rounded-2xl mb-6`}
+        className={`${isPrimary ? "bg-[#FF6D1F]" : "bg-[#222222]"
+          } w-fit p-3 rounded-2xl mb-6`}
       >
         <Icon size={28} className="text-white" />
       </div>
@@ -60,7 +58,7 @@ export default function ProfileBanner({ userData }: ProfileBannerProps) {
     name: "Dr. Sarah Lee",
     bio: "Expert in digital health and wellness. Sharing insights on modern medicine and lifestyle through weekly knowledge-sharing sessions. Dedicated to making complex medical information accessible to everyone.",
     imageUrl:
-      "https://images.unsplash.com/photo-1559839734-2b71f1536783?auto=format&fit=crop&q=80&w=400&h=400",
+      "https://api.dicebear.com/9.x/bottts/svg?seed=Sarah",
     moneyEarned: "1,250.00",
     totalViews: "45,200",
   };
@@ -76,9 +74,9 @@ export default function ProfileBanner({ userData }: ProfileBannerProps) {
                 <img
                   src={data.imageUrl}
                   alt={`${data.name}'s profile`}
-                  
+
                   className="object-cover"
-                  
+
                 />
               </div>
               <div className="absolute bottom-2 right-2 bg-[#FF6D1F] p-2.5 rounded-full border-4 border-white shadow-lg">

@@ -31,7 +31,7 @@ export default function UploaderCard() {
     name: "Dr. Sarah Lee",
     bio: "It strikes a beautiful balance between the simple and the sophisticated. I focus on delivering educational content that guides the next generation toward impactful results in their respective fields.",
     avatar:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200&h=200",
+      "https://api.dicebear.com/9.x/bottts/svg?seed=Sarah",
   };
 
   const profilePath = `/uploaderprofile/${uploader.id}`;
@@ -60,11 +60,10 @@ export default function UploaderCard() {
             </div>
             <button
               onClick={() => setIsFollowing((f) => !f)}
-              className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 ${
-                isFollowing
-                  ? "bg-[#222222] border-[#222222] text-white"
-                  : "bg-transparent border-[#222222] text-[#222222] hover:bg-[#222222] hover:text-white"
-              }`}
+              className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 ${isFollowing
+                ? "bg-[#222222] border-[#222222] text-white"
+                : "bg-transparent border-[#222222] text-[#222222] hover:bg-[#222222] hover:text-white"
+                }`}
             >
               {isFollowing ? "Following" : "Follow"}
             </button>
