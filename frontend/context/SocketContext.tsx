@@ -16,7 +16,6 @@ const SocketContext = createContext<SocketContextType>({
 export const useSocketContext = () => {
     return useContext(SocketContext);
 };
-
 export const SocketContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [socket, setSocket] = useState<any | null>(null);
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);

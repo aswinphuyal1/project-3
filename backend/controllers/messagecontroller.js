@@ -65,62 +65,74 @@ export const getMessages = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
-
+//remannifn to usersatand
 export const getUsersForSidebar = async (req, res) => {
-    try {
-        const loggedInUserId = req.user._id;
+  try {
+    const loggedInUserId = req.user._id;
 
-        // 1. Get all users except logged in user
-        const allUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+    // 1. Get all users except the logged-in user
+    const users = await User.find({
+      _id: { $ne: loggedInUserId },
+    }).select("-password");
 
-        // 2. Get conversations for logged in user to find recent chats
-        const conversations = await Conversation.find({
-            participants: loggedInUserId
-        }).populate("messages");
+    // 2. Get all conversations of logged-in user
+    const conversations = await Conversation.find({
+      participants: loggedInUserId,
+    }).populate("messages");
 
-        // 3. Map user IDs to their last message data
-        const userConversationMap = {};
-        conversations.forEach(conv => {
-            const otherParticipantId = conv.participants.find(p => p.toString() !== loggedInUserId.toString());
+    // 3. Store last message info for each conversation
+    const lastMessageData = {};
 
-            if (conv.messages.length > 0) {
-                const lastMsg = conv.messages[conv.messages.length - 1];
-                userConversationMap[otherParticipantId] = {
-                    lastMsg: lastMsg.message ? lastMsg.message : "View message",
-                    time: lastMsg.createdAt ? new Date(lastMsg.createdAt).getTime() : new Date(conv.updatedAt).getTime()
-                };
-            } else {
-                userConversationMap[otherParticipantId] = {
-                    lastMsg: "Start a conversation",
-                    time: new Date(conv.updatedAt).getTime()
-                };
-            }
-        });
+    for (let i = 0; i < conversations.length; i++) {
+      const conversation = conversations[i];
 
-        // 4. Attach metadata and Sort users
-        const usersWithMetadata = allUsers.map(user => {
-            const userObj = user.toObject();
-            const data = userConversationMap[user._id.toString()];
-            if (data) {
-                userObj.lastMsg = data.lastMsg;
-                userObj.lastMsgTime = data.time;
-            } else {
-                userObj.lastMsg = null;
-                userObj.lastMsgTime = 0; // Oldest
-            }
-            return userObj;
-        });
+      // Find the other user in the conversation
+      const otherUserId = conversation.participants.find(
+        (id) => id.toString() !== loggedInUserId.toString()
+      );
 
-        const sortedUsers = usersWithMetadata.sort((a, b) => {
-            // Primary sort: Last message time
-            if (b.lastMsgTime !== a.lastMsgTime) return b.lastMsgTime - a.lastMsgTime;
-            // Secondary sort: Name
-            return a.name.localeCompare(b.name);
-        });
+      if (!otherUserId) continue;
 
-        res.status(200).json(sortedUsers);
-    } catch (error) {
-        console.error("Error in getUsersForSidebar: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
+      // If messages exist
+      if (conversation.messages.length > 0) {
+        const lastMessage =
+          conversation.messages[conversation.messages.length - 1];
+
+        lastMessageData[otherUserId.toString()] = {
+          text: lastMessage.message || "View message",
+          time: new Date(lastMessage.createdAt).getTime(),
+        };
+      } else {
+        // No messages yet
+        lastMessageData[otherUserId.toString()] = {
+          text: "Start a conversation",
+          time: new Date(conversation.updatedAt).getTime(),
+        };
+      }
     }
+
+    // 4. Attach last message info to users
+    const usersWithMessages = users.map((user) => {
+      const userObj = user.toObject();
+      const lastMsg = lastMessageData[user._id.toString()];
+
+      if (lastMsg) {
+        userObj.lastMsg = lastMsg.text;
+        userObj.lastMsgTime = lastMsg.time;
+      } else {
+        userObj.lastMsg = null;
+        userObj.lastMsgTime = 0;
+      }
+
+      return userObj;
+    });
+
+    // 5. Sort users by last message time (recent first)
+    usersWithMessages.sort((a, b) => b.lastMsgTime - a.lastMsgTime);
+
+    res.status(200).json(usersWithMessages);
+  } catch (error) {
+    console.error("Error in getUsersForSidebar:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
