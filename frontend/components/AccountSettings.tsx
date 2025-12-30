@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect, useMemo } from "react";
+import { useAuth } from "../context/Authcontext";
 import {
   Eye,
   EyeOff,
@@ -34,9 +35,8 @@ const InputField = ({
         value={value}
         name={name}
         onChange={onChange}
-        className={`w-full px-5 py-3.5 pr-12 bg-[#F5E7C6]/50 border-2 ${
-          error ? "border-red-400 ring-1 ring-red-100" : "border-transparent"
-        } rounded-2xl focus:bg-white focus:border-[#FF6D1F] focus:outline-none text-[#222222] placeholder-gray-400 transition-all duration-300 shadow-sm`}
+        className={`w-full px-5 py-3.5 pr-12 bg-[#F5E7C6]/50 border-2 ${error ? "border-red-400 ring-1 ring-red-100" : "border-transparent"
+          } rounded-2xl focus:bg-white focus:border-[#FF6D1F] focus:outline-none text-[#222222] placeholder-gray-400 transition-all duration-300 shadow-sm`}
       />
       <button
         type="button"
@@ -77,6 +77,8 @@ const PrimaryButton = ({
 // --- Main Functional Component ---
 
 const AccountSettings = () => {
+  const { user, changePassword, deleteAccount } = useAuth();
+
   // Form State
   const [formData, setFormData] = useState({
     current: "",
@@ -86,9 +88,7 @@ const AccountSettings = () => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isPending, setIsPending] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  // Account Status States
-  const [isDeactivated, setIsDeactivated] = useState(false);
+  const [message, setMessage] = useState("");
 
   // Strength Logic
   const strengthData = useMemo(() => {
@@ -113,6 +113,7 @@ const AccountSettings = () => {
     // Clear errors when user types
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     if (success) setSuccess(false);
+    setMessage("");
   };
 
   const validate = () => {
@@ -131,14 +132,32 @@ const AccountSettings = () => {
     if (!validate()) return;
 
     setIsPending(true);
-    // Simulate API Call
-    setTimeout(() => {
-      console.log("Submitting to API:", formData);
-      setIsPending(false);
+    setMessage("");
+
+    const result = await changePassword(formData.current, formData.new);
+
+    setIsPending(false);
+    if (result.success) {
       setSuccess(true);
       setFormData({ current: "", new: "", confirm: "" });
-    }, 1500);
+      setMessage(result.message || "Password updated!");
+    } else {
+      setSuccess(false);
+      setMessage(result.message || "Failed to update password");
+      // Optionally map error to field if possible
+    }
   };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to permanently delete your account? This cannot be undone.")) {
+      const result = await deleteAccount();
+      if (!result.success) {
+        alert(result.message);
+      }
+    }
+  };
+
+  const isLocalUser = user?.provider === "local";
 
   return (
     <div className="min-h-screen bg-white text-[#222222]">
@@ -165,41 +184,51 @@ const AccountSettings = () => {
                 <h2 className="text-2xl font-bold">Update Password</h2>
               </div>
 
-              <div className="max-w-lg">
-                <InputField
-                  name="current"
-                  placeholder="Current Password"
-                  value={formData.current}
-                  onChange={handleChange}
-                  error={errors.current}
-                />
-                <InputField
-                  name="new"
-                  placeholder="New Password"
-                  value={formData.new}
-                  onChange={handleChange}
-                  error={errors.new}
-                />
-                <InputField
-                  name="confirm"
-                  placeholder="Confirm New Password"
-                  value={formData.confirm}
-                  onChange={handleChange}
-                  error={errors.confirm}
-                />
+              {isLocalUser ? (
+                <div className="max-w-lg">
+                  <InputField
+                    name="current"
+                    placeholder="Current Password"
+                    value={formData.current}
+                    onChange={handleChange}
+                    error={errors.current}
+                  />
+                  <InputField
+                    name="new"
+                    placeholder="New Password"
+                    value={formData.new}
+                    onChange={handleChange}
+                    error={errors.new}
+                  />
+                  <InputField
+                    name="confirm"
+                    placeholder="Confirm New Password"
+                    value={formData.confirm}
+                    onChange={handleChange}
+                    error={errors.confirm}
+                  />
 
-                <div className="mt-8 flex items-center gap-4">
-                  <PrimaryButton onClick={handleUpdate} loading={isPending}>
-                    {success ? "Saved!" : "Apply Changes"}
-                  </PrimaryButton>
-                  {success && (
-                    <div className="flex items-center gap-2 text-green-600 font-bold animate-bounce">
-                      <CheckCircle2 size={20} />
-                      <span>Updated!</span>
-                    </div>
+                  {message && !success && (
+                    <p className="text-red-500 mb-4">{message}</p>
                   )}
+
+                  <div className="mt-8 flex items-center gap-4">
+                    <PrimaryButton onClick={handleUpdate} loading={isPending}>
+                      {success ? "Saved!" : "Apply Changes"}
+                    </PrimaryButton>
+                    {success && (
+                      <div className="flex items-center gap-2 text-green-600 font-bold animate-bounce">
+                        <CheckCircle2 size={20} />
+                        <span>Updated!</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl border border-yellow-200">
+                  <p>Change password is not available because you are logged in via {user?.provider || "a third-party provider"}.</p>
+                </div>
+              )}
             </section>
 
             {/* Account Management */}
@@ -209,33 +238,17 @@ const AccountSettings = () => {
                 <h2 className="text-2xl font-bold">Danger Zone</h2>
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-white rounded-2xl border border-[#F5E7C6]/50">
-                <div>
-                  <h3 className="font-bold text-lg">Deactivate Account</h3>
-                  <p className="text-gray-500 text-sm mt-1">
-                    Temporarily hide your data. You can log back in anytime.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsDeactivated(!isDeactivated)}
-                  className={`w-14 h-8 flex items-center rounded-full p-1 transition-all ${
-                    isDeactivated ? "bg-[#FF6D1F]" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${
-                      isDeactivated ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
+              {/* Deactivate section removed as requested */}
 
-              <div className="mt-8 flex items-center justify-between border-t border-[#F5E7C6] pt-8">
+              <div className="flex items-center justify-between pt-4">
                 <p className="text-sm text-gray-400 max-w-sm">
                   This will permanently delete your shared knowledge and reward
                   points.
                 </p>
-                <button className="flex items-center gap-2 text-red-500 font-bold hover:bg-red-50 py-2.5 px-5 rounded-2xl transition-all active:scale-95">
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 text-red-500 font-bold hover:bg-red-50 py-2.5 px-5 rounded-2xl transition-all active:scale-95"
+                >
                   <Trash2 size={18} />
                   Delete Profile
                 </button>
@@ -244,69 +257,68 @@ const AccountSettings = () => {
           </div>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-4">
-            <div className="sticky top-12 space-y-6">
-              <div className="bg-[#222222] text-white rounded-[2rem] p-8 shadow-2xl">
-                <h3 className="text-xl font-bold mb-6">Password Health</h3>
-                <div className="space-y-6">
-                  <div className="flex justify-between items-end">
-                    <span className="text-gray-400 text-sm">
-                      Complexity Score
-                    </span>
-                    <span
-                      className={`text-xl font-black ${
-                        strengthData.score > 75
+          {isLocalUser && (
+            <aside className="lg:col-span-4">
+              <div className="sticky top-12 space-y-6">
+                <div className="bg-[#222222] text-white rounded-[2rem] p-8 shadow-2xl">
+                  <h3 className="text-xl font-bold mb-6">Password Health</h3>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                      <span className="text-gray-400 text-sm">
+                        Complexity Score
+                      </span>
+                      <span
+                        className={`text-xl font-black ${strengthData.score > 75
                           ? "text-[#FF6D1F]"
                           : "text-white"
-                      }`}
-                    >
-                      {strengthData.label}
-                    </span>
-                  </div>
-
-                  <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-700 ease-out ${strengthData.color}`}
-                      style={{ width: `${strengthData.score}%` }}
-                    />
-                  </div>
-
-                  <ul className="space-y-3 pt-4 border-t border-white/10">
-                    {[
-                      {
-                        check: formData.new.length > 7,
-                        text: "Minimum 8 chars",
-                      },
-                      {
-                        check: /[A-Z]/.test(formData.new),
-                        text: "At least one uppercase",
-                      },
-                      {
-                        check: /[0-9]/.test(formData.new),
-                        text: "Contains a number",
-                      },
-                    ].map((item, idx) => (
-                      <li
-                        key={idx}
-                        className={`flex items-center gap-3 text-sm ${
-                          item.check ? "text-white" : "text-gray-500"
-                        }`}
+                          }`}
                       >
-                        <div
-                          className={`w-4 h-4 rounded-full border ${
-                            item.check
+                        {strengthData.label}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-700 ease-out ${strengthData.color}`}
+                        style={{ width: `${strengthData.score}%` }}
+                      />
+                    </div>
+
+                    <ul className="space-y-3 pt-4 border-t border-white/10">
+                      {[
+                        {
+                          check: formData.new.length > 7,
+                          text: "Minimum 8 chars",
+                        },
+                        {
+                          check: /[A-Z]/.test(formData.new),
+                          text: "At least one uppercase",
+                        },
+                        {
+                          check: /[0-9]/.test(formData.new),
+                          text: "Contains a number",
+                        },
+                      ].map((item, idx) => (
+                        <li
+                          key={idx}
+                          className={`flex items-center gap-3 text-sm ${item.check ? "text-white" : "text-gray-500"
+                            }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full border ${item.check
                               ? "bg-[#FF6D1F] border-[#FF6D1F]"
                               : "border-white/20"
-                          }`}
-                        />
-                        {item.text}
-                      </li>
-                    ))}
-                  </ul>
+                              }`}
+                          />
+                          {item.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          </aside>
+            </aside>
+          )}
         </div>
       </main>
     </div>
