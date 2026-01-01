@@ -24,6 +24,7 @@ type NoteContextType = {
     fetchNoteById: (id: string) => Promise<Note | null | any>;
     fetchUserNotes: (userId: string) => Promise<void>;
     deleteNote: (noteId: string) => Promise<boolean>;
+    totalUserViews: number;
 };
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -108,8 +109,10 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [token]);
 
+    const totalUserViews = userNotes.reduce((acc, note) => acc + (note.views || 0), 0);
+
     return (
-        <NoteContext.Provider value={{ notes, userNotes, loading, fetchAllNotes, fetchNoteById, fetchUserNotes, deleteNote }}>
+        <NoteContext.Provider value={{ notes, userNotes, loading, fetchAllNotes, fetchNoteById, fetchUserNotes, deleteNote, totalUserViews }}>
             {children}
         </NoteContext.Provider>
     );

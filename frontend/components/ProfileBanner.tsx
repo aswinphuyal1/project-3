@@ -3,6 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { DollarSign, Eye, TrendingUp, LucideIcon } from "lucide-react";
 import { useAuth } from "../context/Authcontext";
+import { useNotes } from "../context/NoteContext";
 
 // 1. Separate Reusable Sub-component for Stats
 interface StatCardProps {
@@ -43,17 +44,6 @@ const StatCard = ({
   );
 };
 
-// ... existing imports ...
-
-// ... StatCard component ...
-
-// 2. Main Component
-
-// ... existing imports ...
-
-// ... StatCard component ...
-
-// 2. Main Component
 interface ProfileBannerProps {
   userData?: {
     name: string;
@@ -66,14 +56,21 @@ interface ProfileBannerProps {
 
 export default function ProfileBanner({ userData }: ProfileBannerProps) {
   const { user } = useAuth();
+  const { totalUserViews, fetchUserNotes } = useNotes();
+
+  React.useEffect(() => {
+    if (user?.id && !userData) {
+      fetchUserNotes(user.id);
+    }
+  }, [user?.id, fetchUserNotes, userData]);
 
   // Use passed data or fall back to context/sample data
   const data = userData || {
     name: user?.name || "Dr. Sarah Lee",
     bio: "Expert in digital health and wellness. Sharing insights on modern medicine and lifestyle through weekly knowledge-sharing sessions. Dedicated to making complex medical information accessible to everyone.",
     imageUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${user?.name || "Sarah"}`,
-    moneyEarned: "1,250.00",
-    totalViews: "45,200",
+    moneyEarned: "25",
+    totalViews: totalUserViews.toLocaleString(),
   };
 
   return (

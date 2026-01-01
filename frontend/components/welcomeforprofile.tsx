@@ -2,6 +2,7 @@
 import React, { useCallback } from "react";
 import { CupSoda, Eye, Award, TrendingUp } from "lucide-react";
 import { useAuth } from "../context/Authcontext";
+import { useNotes } from "../context/NoteContext";
 
 // --- Sub-Component: Reusable Stat Card ---
 interface StatCardProps {
@@ -52,21 +53,26 @@ interface WelcomeForProfileProps {
   totalViews?: number;
 }
 
-
-
 export default function WelcomeForProfile({
   username = "Aswin Phuyal",
   points = 1250,
-  donations = 2500,
+  donations = 25,
   totalViews = 5800,
 }: WelcomeForProfileProps) {
   const { user } = useAuth();
+  const { totalUserViews, fetchUserNotes } = useNotes();
+
+  React.useEffect(() => {
+    if (user?.id) {
+      fetchUserNotes(user.id);
+    }
+  }, [user?.id, fetchUserNotes]);
 
   // Use context user name if available, otherwise fall back to props
   const displayName = user?.name || username;
   // Format data
-  const formattedDonations = `$${(donations / 100).toFixed(2)}`;
-  const formattedViews = totalViews.toLocaleString();
+  const formattedDonations = `$${(donations)}`;
+  const formattedViews = totalUserViews > 0 ? totalUserViews.toLocaleString() : totalViews.toLocaleString();
   const formattedPoints = points.toLocaleString();
 
   return (

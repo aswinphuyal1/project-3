@@ -3,12 +3,13 @@
 import React, { useCallback } from "react";
 import { CupSoda, Eye, Award } from "lucide-react";
 import { useAuth } from "@/context/Authcontext";
+import { useNotes } from "@/context/NoteContext";
 
 // --- Default Data for quick mounting ---
 const DUMMY_USER_DATA = {
   name: "Aswin phuyal",
   points: 1250,
-  donations: 2500, // $25.00
+  donations: 25, // $25.00
   totalViews: 5800,
 };
 
@@ -43,12 +44,19 @@ interface WelcomeCardProps {
 const WelcomeCard: React.FC<WelcomeCardProps> = (props) => {
   // move hook inside component
   const { user } = useAuth();
+  const { totalUserViews, fetchUserNotes } = useNotes();
+
+  React.useEffect(() => {
+    if (user?.id) {
+      fetchUserNotes(user.id);
+    }
+  }, [user?.id, fetchUserNotes]);
 
   // derive values with fallbacks
   const name = props.name ?? user?.name ?? DUMMY_USER_DATA.name;
   const points = props.points ?? DUMMY_USER_DATA.points;
   const donations = props.donations ?? DUMMY_USER_DATA.donations;
-  const totalViews = props.totalViews ?? DUMMY_USER_DATA.totalViews;
+  const totalViews = totalUserViews > 0 ? totalUserViews : (props.totalViews ?? DUMMY_USER_DATA.totalViews);
   const { onViewAllClick } = props;
 
   // Use a default alert if no specific function is provided
@@ -61,9 +69,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = (props) => {
   }, [onViewAllClick]);
 
   // Format data for display
-  const formattedDonations = `$${(donations / 100)
-    .toFixed(2)
-    .replace(".", ",")}`;
+  const formattedDonations = `$${(donations)}`;
   const formattedViews = totalViews.toLocaleString();
   const formattedPoints = points.toLocaleString();
 
