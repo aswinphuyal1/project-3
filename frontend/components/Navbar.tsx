@@ -10,7 +10,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Home", href: "/home", isHighlighted: true },
-  { name: "Notes", href: "/notes", isHighlighted: true },
+  { name: "Notes", href: "/explore", isHighlighted: true },
   { name: "About us", href: "/aboutus", isHighlighted: true },
 ];
 
