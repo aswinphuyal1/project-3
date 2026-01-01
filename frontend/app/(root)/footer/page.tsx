@@ -6,29 +6,32 @@ import { MountainIcon, Twitter, Linkedin, Github } from "lucide-react";
 // Define the footer navigation structure
 const footerNavs = {
   Company: [
-    { title: "About Us", href: "/about" },
-    { title: "Contact", href: "/contact" },
-    { title: "Careers", href: "/careers" },
-    { title: "Manifesto", href: "/manifesto" },
+    { title: "About Us", href: "/aboutus" },
+    { title: "Contact", href: "/home" },
+    { title: "Careers", href: "/home" },
+    { title: "Manifesto", href: "/home" },
   ],
   Resources: [
-    { title: "Help Center", href: "/help" },
-    { title: "Terms of Service", href: "/terms" },
-    { title: "Privacy Policy", href: "/privacy" },
-    { title: "Knowledge Base", href: "/knowledge" },
+    { title: "Help Center", href: "/home" },
+    { title: "Terms of Service", href: "/home" },
+    { title: "Privacy Policy", href: "/home" },
+    { title: "Knowledge Base", href: "/home" },
   ],
   Features: [
-    { title: "Explore Notes", href: "/explore-notes" },
-    { title: "AI Assistant", href: "/ai-assistant" },
-    { title: "Live Sessions", href: "/live" },
-    { title: "Creator Tools", href: "/creator" },
+    { title: "Explore Notes", href: "/explore" },
+    { title: "AI Assistant", href: "/ai" },
+    { title: "Live Sessions", href: "/home" },
+    { title: "Creator Tools", href: "/profile" },
   ],
 };
 
 const socialLinks = [
-  { icon: Twitter, href: "https://twitter.com/notesshare" },
-  { icon: Linkedin, href: "https://linkedin.com/company/notesshare" },
-  { icon: Github, href: "https://github.com/notesshare" },
+  { icon: Twitter, href: "https://x.com/AswinPhuyal1" },
+  {
+    icon: Linkedin,
+    href: "https://www.linkedin.com/in/aswin-phuyal-787272284/",
+  },
+  { icon: Github, href: "https://github.com/aswinphuyal1" },
 ];
 
 export const Footer = () => {
