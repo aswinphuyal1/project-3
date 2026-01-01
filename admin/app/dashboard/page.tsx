@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { useRouter } from "next/navigation";
-import { Trash2, FileText, Users, LogOut } from "lucide-react";
+import { Trash2, FileText, Users, LogOut, Eye } from "lucide-react";
 
 export default function Dashboard() {
-    const { token, users, notes, fetchUsers, fetchNotes, deleteUser, deleteNote, logout } = useAdmin();
+    const { token, users, notes, totalViews, fetchUsers, fetchNotes, deleteUser, deleteNote, logout } = useAdmin();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"users" | "notes">("users");
 
@@ -39,7 +39,7 @@ export default function Dashboard() {
             {/* Main Content */}
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className={`p-6 rounded-2xl shadow-sm border-2 cursor-pointer transition-all ${activeTab === 'users' ? 'bg-white border-blue-500 ring-2 ring-blue-500/20' : 'bg-white border-transparent hover:border-gray-200'}`}
                         onClick={() => setActiveTab("users")}>
                         <div className="flex items-center gap-4">
@@ -65,7 +65,21 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="p-6 rounded-2xl shadow-sm border-2 border-transparent bg-white hover:border-gray-200">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+                                <Eye className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <p className="text-gray-500 font-medium">Total Site Views</p>
+                                <h2 className="text-3xl font-bold text-gray-800">{totalViews}</h2>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+
 
                 {/* List View */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -124,6 +138,7 @@ export default function Dashboard() {
                                         <th className="px-6 py-4 font-semibold">Title</th>
                                         <th className="px-6 py-4 font-semibold">Subject</th>
                                         <th className="px-6 py-4 font-semibold">Link</th>
+                                        <th className="px-6 py-4 font-semibold">Views</th>
                                         <th className="px-6 py-4 font-semibold">Actions</th>
                                     </tr>
                                 </thead>
@@ -136,6 +151,9 @@ export default function Dashboard() {
                                                 <a href={note.fileUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline text-sm">
                                                     View PDF
                                                 </a>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 font-medium">
+                                                {note.views || 0}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button
@@ -160,7 +178,7 @@ export default function Dashboard() {
                         )}
                     </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

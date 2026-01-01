@@ -1,5 +1,5 @@
 import express from "express";
-import { uploadNote, getAllNotes, getNoteById, getUserNotes, deleteNote } from "../controllers/notecontroller.js";
+import { uploadNote, getAllNotes, getNoteById, getUserNotes, deleteNote, incrementViewCount } from "../controllers/notecontroller.js";
 import upload from "../middleware/multer.js";
 import authMiddleware from "../middleware/auth.js";
 import adminAuth from "../middleware/adminauth.js";
@@ -10,6 +10,7 @@ noteRouter.post("/upload", upload.single("file"), uploadNote);
 noteRouter.get("/list", authMiddleware, getAllNotes);
 noteRouter.get("/:id", authMiddleware, getNoteById);
 noteRouter.get("/user/:userId", authMiddleware, getUserNotes);
+noteRouter.put("/view/:id", incrementViewCount);
 noteRouter.delete("/delete/:id", authMiddleware, deleteNote);
 
 // Admin Routes

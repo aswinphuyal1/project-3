@@ -6,6 +6,7 @@ import { SocketContextProvider } from "@/context/SocketContext";
 import AuthGuard from "@/components/AuthGuard";
 import { UploadProvider } from "@/context/UploadContext";
 import { NoteProvider } from "@/context/NoteContext";
+import { ViewProvider } from "@/context/ViewContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,7 +51,9 @@ export default function RootLayout({
             <AuthGuard>
               <UploadProvider>
                 <NoteProvider>
-                  {children}
+                  <ViewProvider>
+                    {children}
+                  </ViewProvider>
                 </NoteProvider>
               </UploadProvider>
             </AuthGuard>

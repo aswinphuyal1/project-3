@@ -10,6 +10,7 @@ const noteSchema = new mongoose.Schema({
     fileName: { type: String, required: true },
     fileSize: { type: Number, required: true },
     fileType: { type: String, required: true },
+    views: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
 });
 

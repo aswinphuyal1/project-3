@@ -112,5 +112,26 @@ const deleteNote = async (req, res) => {
     }
 }
 
-export { uploadNote, getAllNotes, getNoteById, getUserNotes, deleteNote };
+// Increment view count
+const incrementViewCount = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const note = await noteModel.findByIdAndUpdate(
+            id,
+            { $inc: { views: 1 } },
+            { new: true }
+        );
+
+        if (!note) {
+            return res.status(404).json({ success: false, message: "Note not found" });
+        }
+
+        res.status(200).json({ success: true, views: note.views, message: "View counted" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+export { uploadNote, getAllNotes, getNoteById, getUserNotes, deleteNote, incrementViewCount };
 //

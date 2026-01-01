@@ -3,24 +3,32 @@ import React, { useEffect, useState } from 'react';
 import NotePreviewCard from '@/components/NotePreviewCard';
 import UploaderCard from '@/components/UploaderCard';
 import { useNotes } from '@/context/NoteContext';
+import { useView } from '@/context/ViewContext';
 import { useParams } from 'next/navigation';
 
 const Page = () => {
   const { id } = useParams(); // Get ID from URL
   const { fetchNoteById } = useNotes();
+  const { incrementView } = useView();
   const [note, setNote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const lastIncrementedId = React.useRef<string | null>(null);
 
   useEffect(() => {
     if (id) {
       const loadNote = async () => {
+        // Only increment if we haven't for this ID yet (prevents double count in strict mode)
+        if (lastIncrementedId.current !== id) {
+          lastIncrementedId.current = id as string;
+          await incrementView(id as string);
+        }
         const data = await fetchNoteById(id as string);
         setNote(data);
         setLoading(false);
       };
       loadNote();
     }
-  }, [id, fetchNoteById]);
+  }, [id, fetchNoteById, incrementView]);
 
   if (loading) return <div className="p-10 text-center">Loading Note...</div>;
   if (!note) return <div className="p-10 text-center">Note not found.</div>;

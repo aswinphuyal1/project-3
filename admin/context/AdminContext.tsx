@@ -20,12 +20,14 @@ interface Note {
     fileUrl: string;
     createdAt: string;
     userId: string;
+    views?: number;
 }
 
 interface AdminContextType {
     token: string | null;
     users: User[];
     notes: Note[];
+    totalViews: number;
     login: (email: string, pass: string) => Promise<boolean>;
     logout: () => void;
     fetchUsers: () => Promise<void>;
@@ -41,6 +43,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const [token, setToken] = useState<string | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
+    const [totalViews, setTotalViews] = useState(0);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -104,6 +107,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             });
             if (data.success) {
                 setNotes(data.notes);
+                const views = data.notes.reduce((acc: number, note: any) => acc + (note.views || 0), 0);
+                setTotalViews(views);
             }
         } catch (error) {
             console.error(error);
@@ -151,6 +156,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 token,
                 users,
                 notes,
+                totalViews,
                 login,
                 logout,
                 fetchUsers,

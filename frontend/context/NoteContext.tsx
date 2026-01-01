@@ -12,6 +12,7 @@ export interface Note {
     fileUrl: string;
     fileType: string;
     fileName: string;
+    views?: number;
     createdAt: string;
 }
 

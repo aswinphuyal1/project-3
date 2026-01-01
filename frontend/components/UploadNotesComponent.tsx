@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { Upload, LayoutGrid, FileText, Plus, Check, X } from "lucide-react";
+import { Upload, LayoutGrid, FileText, Plus, Check, X, Eye } from "lucide-react";
 import { useUpload } from "../context/UploadContext";
 
 import { useAuth } from "../context/Authcontext";
@@ -328,6 +328,9 @@ export default function UploadNotesComponent() {
                   <div className="mt-4 pt-4 border-t border-[#222222]/5 flex justify-between items-center">
                     <span className="text-xs font-bold text-[#222222]/30">
                       {new Date(note.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs font-bold text-[#222222]/30">
+                      <Eye className="w-4 h-4" /> {note.views || 0}
                     </span>
                   </div>
                 </div>
