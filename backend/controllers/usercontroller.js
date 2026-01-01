@@ -167,7 +167,8 @@ const supabaseLogin = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { userId, currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId || req.body.userId;
     const user = await usermodel.findById(userId);
 
     if (!user) {
@@ -206,7 +207,7 @@ const changePassword = async (req, res) => {
 
 const deleteAccount = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId || req.body.userId;
     const user = await usermodel.findByIdAndDelete(userId);
 
     if (!user) {

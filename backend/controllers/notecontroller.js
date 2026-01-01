@@ -31,7 +31,8 @@ const uploadNote = async (req, res) => {
             fileName: file.originalname,
             fileSize: file.size,
             fileType: file.mimetype,
-            userId: userId || null
+            fileType: file.mimetype,
+            userId: req.userId || userId || null
         });
 
         await newNote.save();

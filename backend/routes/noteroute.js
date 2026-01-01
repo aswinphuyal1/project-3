@@ -5,10 +5,11 @@ import authMiddleware from "../middleware/auth.js"; // Optional: Use if protecte
 
 const noteRouter = express.Router();
 
-noteRouter.post("/upload",authMiddleware, upload.single("file"), uploadNote);
-noteRouter.get("/list", authMiddleware,getAllNotes);
+noteRouter.post("/upload", upload.single("file"), uploadNote);
+noteRouter.get("/list", authMiddleware, getAllNotes);
+noteRouter.get("/:id", authMiddleware, getNoteById);
 noteRouter.get("/user/:userId", authMiddleware, getUserNotes);
-noteRouter.delete("/delete/:id",authMiddleware, deleteNote);
+noteRouter.delete("/delete/:id", deleteNote);
 
 export default noteRouter;
 //
