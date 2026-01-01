@@ -1,6 +1,7 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import axios from "axios";
+import { useAuth } from "./Authcontext";
 
 export interface Note {
     _id: string;
@@ -32,10 +33,15 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
 
     const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
 
-    const fetchAllNotes = async () => {
+    const { token } = useAuth(); // Get token from AuthContext
+
+    const fetchAllNotes = useCallback(async () => {
+        if (!token) return; // Don't fetch if no token
         setLoading(true);
         try {
-            const response = await axios.get(`${BACKEND_URL}/api/notes/list`);
+            const response = await axios.get(`${BACKEND_URL}/api/notes/list`, {
+                headers: { token }
+            });
             if (response.data.success) {
                 setNotes(response.data.notes);
             }
@@ -44,11 +50,13 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
 
-    const fetchNoteById = async (id: string) => {
+    const fetchNoteById = useCallback(async (id: string) => {
         try {
-            const response = await axios.get(`${BACKEND_URL}/api/notes/${id}`);
+            // Check if token is needed for this one, usually safer to include if user is logged in
+            const headers = token ? { token } : {};
+            const response = await axios.get(`${BACKEND_URL}/api/notes/${id}`, { headers });
             if (response.data.success) {
                 return response.data.note;
             }
@@ -57,24 +65,30 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching note:", error);
             return null;
         }
-    };
+    }, [token]);
 
     const [userNotes, setUserNotes] = useState<Note[]>([]);
 
-    const fetchUserNotes = async (userId: string) => {
+    const fetchUserNotes = useCallback(async (userId: string) => {
+        if (!token) return;
         try {
-            const response = await axios.get(`${BACKEND_URL}/api/notes/user/${userId}`);
+            const response = await axios.get(`${BACKEND_URL}/api/notes/user/${userId}`, {
+                headers: { token }
+            });
             if (response.data.success) {
                 setUserNotes(response.data.notes);
             }
         } catch (error) {
             console.error("Error fetching user notes:", error);
         }
-    };
+    }, [token]);
 
-    const deleteNote = async (noteId: string) => {
+    const deleteNote = useCallback(async (noteId: string) => {
+        if (!token) return false;
         try {
-            const response = await axios.delete(`${BACKEND_URL}/api/notes/delete/${noteId}`);
+            const response = await axios.delete(`${BACKEND_URL}/api/notes/delete/${noteId}`, {
+                headers: { token }
+            });
             if (response.data.success) {
                 setUserNotes(prev => prev.filter(note => note._id !== noteId));
                 setNotes(prev => prev.filter(note => note._id !== noteId)); // Also remove from main list
@@ -85,11 +99,13 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error deleting note:", error);
             return false;
         }
-    };
+    }, [token]);
 
     useEffect(() => {
-        fetchAllNotes();
-    }, []);
+        if (token) {
+            fetchAllNotes();
+        }
+    }, [token]);
 
     return (
         <NoteContext.Provider value={{ notes, userNotes, loading, fetchAllNotes, fetchNoteById, fetchUserNotes, deleteNote }}>

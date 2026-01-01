@@ -64,7 +64,7 @@ const FormInput = ({
 
 export default function UploadNotesComponent() {
 
-  
+
   const {
     title,
     description,
@@ -88,7 +88,7 @@ export default function UploadNotesComponent() {
     if (user?.id) {
       fetchUserNotes(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchUserNotes]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 

@@ -4,26 +4,26 @@ import axios from "axios";
 import { useAuth } from "./Authcontext";
 
 type UploadContextType = {
-    title: string;
-    description: string;
-    subject: string;
-    semester: string;
-    selectedFile: File | null;
-    previewUrl: string | null;
-    isLoading: boolean;
-    setTitle: (value: string) => void;
-    setDescription: (value: string) => void;
-    setSubject: (value: string) => void;
-    setSemester: (value: string) => void;
-    handleFileChange: (file: File | null) => void;
-    uploadNote: () => Promise<{ success: boolean; message: string }>;
-    resetForm: () => void;
+  title: string;
+  description: string;
+  subject: string;
+  semester: string;
+  selectedFile: File | null;
+  previewUrl: string | null;
+  isLoading: boolean;
+  setTitle: (value: string) => void;
+  setDescription: (value: string) => void;
+  setSubject: (value: string) => void;
+  setSemester: (value: string) => void;
+  handleFileChange: (file: File | null) => void;
+  uploadNote: () => Promise<{ success: boolean; message: string }>;
+  resetForm: () => void;
 };
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export const UploadProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
@@ -84,6 +84,7 @@ export const UploadProvider = ({ children }: { children: ReactNode }) => {
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            token: token,
           },
         }
       );
@@ -136,9 +137,9 @@ export const UploadProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useUpload = () => {
-    const context = useContext(UploadContext);
-    if (!context) {
-        throw new Error("useUpload must be used within an UploadProvider");
-    }
-    return context;
+  const context = useContext(UploadContext);
+  if (!context) {
+    throw new Error("useUpload must be used within an UploadProvider");
+  }
+  return context;
 };
