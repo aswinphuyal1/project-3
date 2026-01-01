@@ -70,11 +70,18 @@ const registeruser = async (req, res) => {
 const adminlogin = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+  
+
     if (
-      email == process.env.ADMIN_EMAIL &&
-      password == process.env.ADMIN_PASSWORD
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD
     ) {
-      const token = jwt.sign(email + password, process.env.JWT_SECRET);
+      const token = jwt.sign(
+        { email: email, role: "admin" },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
       res.json({ success: true, token });
     } else {
       res.json({ success: false, message: "invalid user" });
@@ -231,4 +238,18 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount, getAllUsers };
+const deleteUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await usermodel.findByIdAndDelete(id);
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, message: "User deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount, getAllUsers, deleteUserById };
