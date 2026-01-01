@@ -70,7 +70,7 @@ const RecommendedForYou: React.FC = () => {
           Recommended for You
         </h2>
         <button
-          onClick={() => router.push("/notes/recommended")}
+          onClick={() => router.push("/explore")}
           className="text-[#FF6D1F] font-semibold text-base sm:text-lg hover:text-[#E05E1A] transition-colors"
         >
           View All
