@@ -23,10 +23,19 @@ const CoffeeIcon = () => (
   </svg>
 );
 
-export default function UploaderCard() {
+interface UploaderCardProps {
+  uploader?: {
+    id?: string;
+    name: string;
+    bio?: string;
+    avatar?: string;
+  }
+}
+
+export default function UploaderCard({ uploader: propUploader }: UploaderCardProps) {
   const [isFollowing, setIsFollowing] = useState(false);
 
-  const uploader = {
+  const defaultUploader = {
     id: "1",
     name: "Dr. Sarah Lee",
     bio: "It strikes a beautiful balance between the simple and the sophisticated. I focus on delivering educational content that guides the next generation toward impactful results in their respective fields.",
@@ -34,7 +43,9 @@ export default function UploaderCard() {
       "https://api.dicebear.com/9.x/bottts/svg?seed=Sarah",
   };
 
-  const profilePath = `/uploaderprofile/${uploader.id}`;
+  const uploader = propUploader || defaultUploader;
+
+  const profilePath = `/uploaderprofile/${uploader.id || "1"}`;
 
   return (
     <section className="flex items-center justify-center min-h-[400px] p-4 font-sans">

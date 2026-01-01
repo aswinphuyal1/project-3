@@ -2,52 +2,35 @@
 "use client";
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, Atom, FlaskConical, Code, Heart } from "lucide-react";
+import { Brain, Atom, FlaskConical, Code, Heart, FileText, Image as ImageIcon } from "lucide-react";
+import { useNotes } from "../context/NoteContext";
 
-// 1. Data Structure (Minimal: only title, icon, and color)
-interface RecommendedNote {
-  id: number;
-  title: string;
-  icon: React.ElementType;
-  color: string;
-}
+// Helper to assign random but consistent colors/icons for dynamic notes
+const getRandomStyle = (id: string, index: number) => {
+  const icons = [Brain, Atom, FlaskConical, Code, Heart, FileText, ImageIcon];
+  const colors = [
+    "bg-gradient-to-br from-purple-500 to-pink-500",
+    "bg-gradient-to-br from-indigo-500 to-blue-500",
+    "bg-gradient-to-br from-orange-500 to-red-500",
+    "bg-gradient-to-br from-green-500 to-emerald-500",
+    "bg-gradient-to-br from-gray-700 to-gray-900"
+  ];
+  // Simple hash to pick consistent style for same ID
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const safeHash = Math.abs(hash);
 
-// Full list of notes, simplified further
-const initialRecommendedNotes: RecommendedNote[] = [
-  {
-    id: 2,
-    title: "History of AI: From Turing to Today",
-    icon: Brain,
-    color: "bg-gradient-to-br from-purple-500 to-pink-500",
-  },
-  {
-    id: 3,
-    title: "Quantum Physics Fundamentals",
-    icon: Atom,
-    color: "bg-gradient-to-br from-indigo-500 to-blue-500",
-  },
-  {
-    id: 4,
-    title: "Web Development Basics",
-    icon: Code,
-    color: "bg-gradient-to-br from-orange-500 to-red-500",
-  },
-  {
-    id: 5,
-    title: "Organic Chemistry Reactions",
-    icon: FlaskConical,
-    color: "bg-gradient-to-br from-green-500 to-emerald-500",
-  },
-  {
-    id: 6,
-    title: "Space Exploration Policy",
-    icon: Heart,
-    color: "bg-gradient-to-br from-gray-700 to-gray-900",
-  },
-];
+  return {
+    icon: icons[safeHash % icons.length],
+    color: colors[safeHash % colors.length]
+  };
+};
 
 const RecommendedForYou: React.FC = () => {
   const router = useRouter();
+  const { notes, loading } = useNotes();
 
   // Fisher-Yates (Knuth) Shuffle Algorithm
   const shuffleArray = <T extends any[]>(array: T): T => {
@@ -64,8 +47,21 @@ const RecommendedForYou: React.FC = () => {
 
   // Shuffle the notes and display a maximum of 4
   const shuffledNotes = useMemo(() => {
-    return shuffleArray(initialRecommendedNotes).slice(0, 4);
-  }, []);
+    if (!notes || notes.length === 0) return [];
+    return shuffleArray(notes).slice(0, 4);
+  }, [notes]);
+
+  if (loading) return null; // Or a skeleton if desired, but user said "do not change ui" so maybe just empty or null while loading is safer for layout stability
+
+  if (shuffledNotes.length === 0) {
+    // Fallback to static if no notes? Or just show nothing/message. 
+    // User asking for "file that are uploaded", so if 0 uploaded, 0 shown.
+    return (
+      <div className="rounded-xl p-6 w-full max-w-4xl border border-[#F5E7C6] shadow-md">
+        <h2 className="text-xl font-bold text-[#222222]">No recommended notes yet.</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl p-4 sm:p-6 w-full max-w-full md:max-w-4xl border border-[#F5E7C6] shadow-md">
@@ -81,21 +77,22 @@ const RecommendedForYou: React.FC = () => {
         </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {shuffledNotes.map((note) => {
-          const Icon = note.icon;
+        {shuffledNotes.map((note, index) => {
+          const style = getRandomStyle(note._id, index);
+          const Icon = style.icon;
 
           return (
             // Card Item
             <div
-              key={note.id}
-              onClick={() => router.push(`/notes/${note.id}`)}
+              key={note._id}
+              onClick={() => router.push(`/notes/${note._id}`)}
               className="group bg-white rounded-xl border border-[#F5E7C6] overflow-hidden 
                          hover:border-[#FF6D1F] transition-all duration-300 cursor-pointer 
                          shadow-sm hover:shadow-lg"
             >
               {/* Icon Placeholder Area (Smaller Icon) */}
               <div
-                className={`relative w-full h-32 overflow-hidden flex items-center justify-center ${note.color}`}
+                className={`relative w-full h-32 overflow-hidden flex items-center justify-center ${style.color}`}
               >
                 <Icon
                   // Icon size: w-12 h-12
@@ -113,8 +110,6 @@ const RecommendedForYou: React.FC = () => {
                 <h3 className="font-semibold text-base text-[#222222] transition-colors line-clamp-2">
                   {note.title}
                 </h3>
-
-                {/* Removed the author row completely */}
               </div>
             </div>
           );
