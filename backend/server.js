@@ -7,8 +7,10 @@ import "dotenv/config";
 import connectdb from "./config/mongodb.js";
 import connectcloudinary from "./config/cloudinary.js";
 import userrouter from "./routes/userroute.js";
+import usermodel from "./models/usermodel.js"; // Registration side-effect
 import messagerouter from "./routes/messageroute.js"; // Import message routes
-import { app, server } from "./socket/socket.js"; // Import app and server from socket
+import noteRouter from "./routes/noteroute.js";
+import { app, server } from "./socket/socket.js";
 
 //app config (Already defined in socket.js, so we use 'app' from there)
 const port = process.env.PORT || 4000;
@@ -28,6 +30,7 @@ Example: Frontend on localhost:3000 can call backend on localhost:4000
 
 app.use("/api/user", userrouter);
 app.use("/api/messages", messagerouter); // Use message routes
+app.use("/api/notes", noteRouter); // Use note routes
 
 app.get("/", (req, res) => {
   res.send("Api working");
@@ -35,3 +38,4 @@ app.get("/", (req, res) => {
 
 // Use server.listen instead of app.listen to support sockets
 server.listen(port, () => console.log("serve started on port :", port));
+//

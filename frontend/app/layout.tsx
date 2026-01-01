@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/Authcontext";
 import { SocketContextProvider } from "@/context/SocketContext";
 import AuthGuard from "@/components/AuthGuard";
+import { UploadProvider } from "@/context/UploadContext";
+import { NoteProvider } from "@/context/NoteContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,7 +47,13 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SocketContextProvider>
-            <AuthGuard>{children}</AuthGuard>
+            <AuthGuard>
+              <UploadProvider>
+                <NoteProvider>
+                  {children}
+                </NoteProvider>
+              </UploadProvider>
+            </AuthGuard>
           </SocketContextProvider>
         </AuthProvider>
       </body>

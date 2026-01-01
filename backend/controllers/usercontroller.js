@@ -220,4 +220,14 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount };
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await usermodel.find({});
+    res.json({ success: true, users });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount, getAllUsers };
