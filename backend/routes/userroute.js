@@ -6,9 +6,11 @@ import {
   supabaseLogin,
   changePassword,
   deleteAccount,
-  getAllUsers
+  getAllUsers,
+  deleteUserById
 } from "../controllers/usercontroller.js";
 import authuser from "../middleware/auth.js";
+import adminAuth from "../middleware/adminauth.js";
 
 const userrouter = express.Router();
 
@@ -18,5 +20,7 @@ userrouter.post("/admin", adminlogin);
 userrouter.post("/supabase-login", supabaseLogin);
 userrouter.post("/change-password", authuser, changePassword);
 userrouter.delete("/delete", authuser, deleteAccount);
-userrouter.get("/list", getAllUsers); // broad access for now as per "admin" flow
+userrouter.delete("/delete", authuser, deleteAccount);
+userrouter.get("/list", adminAuth, getAllUsers);
+userrouter.delete("/admin/delete/:id", adminAuth, deleteUserById);
 export default userrouter;
