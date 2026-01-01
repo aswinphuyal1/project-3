@@ -14,7 +14,7 @@ interface UploadButtonProps {
  * Matches the user's design image and uses the defined color palette.
  */
 const UploadButton: React.FC<UploadButtonProps> = ({
-  uploadPath = "/upload-notes", // Default path based on platform pages
+  uploadPath = "/upload", // Default path based on platform pages
 }) => {
   const router = useRouter();
 
