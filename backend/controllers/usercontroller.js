@@ -1,4 +1,3 @@
-
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -13,12 +12,24 @@ const loginuser = async (req, res) => {
     const { email, password } = req.body;
     const user = await usermodel.findOne({ email });
     if (!user) {
-      return res.json({ success: false, message: "user donot exist create account" });
+      return res.json({
+        success: false,
+        message: "user donot exist create account",
+      });
     }
     const ismatch = await bcrypt.compare(password, user.password);
     if (ismatch) {
       const token = createtoken(user._id);
-      res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, provider: user.provider } });
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          provider: user.provider,
+        },
+      });
     } else {
       res.json({ success: false, message: "incorrect password" });
     }
@@ -48,7 +59,7 @@ const registeruser = async (req, res) => {
       });
     }
 
-    const salt = await bcrypt.genSalt(20);
+    const salt = await bcrypt.genSalt(10);
     const hashedpassword = await bcrypt.hash(password, salt);
     const newuser = new usermodel({
       name,
@@ -58,7 +69,16 @@ const registeruser = async (req, res) => {
     });
     const user = await newuser.save();
     const token = createtoken(user._id);
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, provider: user.provider } });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        provider: user.provider,
+      },
+    });
   } catch (error) {
     res.json({
       success: false,
@@ -70,8 +90,6 @@ const registeruser = async (req, res) => {
 const adminlogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-  
 
     if (
       email === process.env.ADMIN_EMAIL &&
@@ -106,7 +124,7 @@ const supabaseLogin = async (req, res) => {
     console.log("Supabase User Data:", {
       email: supaUser.email,
       app_metadata: supaUser.app_metadata,
-      identities: supaUser.identities
+      identities: supaUser.identities,
     });
 
     const supabase_id = supaUser.id;
@@ -154,7 +172,16 @@ const supabaseLogin = async (req, res) => {
         await existing.save();
       }
       const token = createtoken(existing._id);
-      return res.json({ success: true, token, user: { id: existing._id, name: existing.name, email: existing.email, provider: existing.provider } });
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: existing._id,
+          name: existing.name,
+          email: existing.email,
+          provider: existing.provider,
+        },
+      });
     }
 
     const newuser = await usermodel.create({
@@ -165,7 +192,16 @@ const supabaseLogin = async (req, res) => {
     });
 
     const token = createtoken(newuser._id);
-    res.json({ success: true, token, user: { id: newuser._id, name: newuser.name, email: newuser.email, provider: newuser.provider } });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: newuser._id,
+        name: newuser.name,
+        email: newuser.email,
+        provider: newuser.provider,
+      },
+    });
   } catch (error) {
     console.error("Supabase Login Error:", error);
     res.json({ success: false, message: error.message });
@@ -185,13 +221,17 @@ const changePassword = async (req, res) => {
     if (user.provider !== "local") {
       return res.json({
         success: false,
-        message: "You can only change password if you logged in with email/password.",
+        message:
+          "You can only change password if you logged in with email/password.",
       });
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.json({ success: false, message: "Incorrect current password" });
+      return res.json({
+        success: false,
+        message: "Incorrect current password",
+      });
     }
 
     if (newPassword.length < 8) {
@@ -252,4 +292,13 @@ const deleteUserById = async (req, res) => {
   }
 };
 
-export { loginuser, registeruser, adminlogin, supabaseLogin, changePassword, deleteAccount, getAllUsers, deleteUserById };
+export {
+  loginuser,
+  registeruser,
+  adminlogin,
+  supabaseLogin,
+  changePassword,
+  deleteAccount,
+  getAllUsers,
+  deleteUserById,
+};
