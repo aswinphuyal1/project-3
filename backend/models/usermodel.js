@@ -4,7 +4,7 @@ const userschema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String },
-    supabase_id: { type: String, unique: true },
+    supabase_id: { type: String, unique: true, sparse: true },
     provider: {
       type: String,
       enum: ["local", "google", "github"],
