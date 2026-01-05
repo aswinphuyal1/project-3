@@ -54,10 +54,10 @@ interface WelcomeForProfileProps {
 }
 
 export default function WelcomeForProfile({
-  username = "Aswin Phuyal",
-  points = 1250,
-  donations = 25,
-  totalViews = 5800,
+  username = "User",
+  points = 0,
+  donations = 0.99,
+  totalViews = 0,
 }: WelcomeForProfileProps) {
   const { user } = useAuth();
   const { totalUserViews, fetchUserNotes } = useNotes();
@@ -71,7 +71,7 @@ export default function WelcomeForProfile({
   // Use context user name if available, otherwise fall back to props
   const displayName = user?.name || username;
   // Format data
-  const formattedDonations = `$${(donations)}`;
+  const formattedDonations = ` रु${donations}`;
   const formattedViews = totalUserViews > 0 ? totalUserViews.toLocaleString() : totalViews.toLocaleString();
   const formattedPoints = points.toLocaleString();
 

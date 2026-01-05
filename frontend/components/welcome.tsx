@@ -8,9 +8,9 @@ import { useNotes } from "@/context/NoteContext";
 // --- Default Data for quick mounting ---
 const DUMMY_USER_DATA = {
   name: "Aswin phuyal",
-  points: 1250,
-  donations: 25, // $25.00
-  totalViews: 5800,
+  points: 0,
+  donations: 0.99, // $25.00
+  totalViews:0,
 };
 
 // --- Sub-Component: Stat Card ---
@@ -69,7 +69,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = (props) => {
   }, [onViewAllClick]);
 
   // Format data for display
-  const formattedDonations = `$${(donations)}`;
+  const formattedDonations = ` रु${donations}`;
   const formattedViews = totalViews.toLocaleString();
   const formattedPoints = points.toLocaleString();
 
