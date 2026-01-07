@@ -127,5 +127,4 @@ export default function WelcomeForProfile({
       </div>
     </section>
   );
-  
 }
