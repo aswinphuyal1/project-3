@@ -109,7 +109,6 @@ const adminlogin = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
 const supabaseLogin = async (req, res) => {
   try {
     const { access_token } = req.body;
@@ -302,3 +301,4 @@ export {
   getAllUsers,
   deleteUserById,
 };
+//

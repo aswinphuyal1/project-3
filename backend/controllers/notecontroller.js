@@ -134,4 +134,3 @@ const incrementViewCount = async (req, res) => {
 }
 
 export { uploadNote, getAllNotes, getNoteById, getUserNotes, deleteNote, incrementViewCount };
-//

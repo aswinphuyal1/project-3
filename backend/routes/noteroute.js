@@ -18,4 +18,3 @@ noteRouter.get("/admin/list", adminAuth, getAllNotes);
 noteRouter.delete("/admin/delete/:id", adminAuth, deleteNote);
 
 export default noteRouter;
-//

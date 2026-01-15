@@ -21,4 +21,3 @@ What it adds:
 );
 const usermodel = mongoose.models.user || mongoose.model("user", userschema);
 export default usermodel;
-//

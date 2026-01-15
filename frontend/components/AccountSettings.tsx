@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/Authcontext";
 import {
@@ -35,8 +35,9 @@ const InputField = ({
         value={value}
         name={name}
         onChange={onChange}
-        className={`w-full px-5 py-3.5 pr-12 bg-[#F5E7C6]/50 border-2 ${error ? "border-red-400 ring-1 ring-red-100" : "border-transparent"
-          } rounded-2xl focus:bg-white focus:border-[#FF6D1F] focus:outline-none text-[#222222] placeholder-gray-400 transition-all duration-300 shadow-sm`}
+        className={`w-full px-5 py-3.5 pr-12 bg-[#F5E7C6]/50 border-2 ${
+          error ? "border-red-400 ring-1 ring-red-100" : "border-transparent"
+        } rounded-2xl focus:bg-white focus:border-[#FF6D1F] focus:outline-none text-[#222222] placeholder-gray-400 transition-all duration-300 shadow-sm`}
       />
       <button
         type="button"
@@ -149,7 +150,11 @@ const AccountSettings = () => {
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to permanently delete your account? This cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to permanently delete your account? This cannot be undone."
+      )
+    ) {
       const result = await deleteAccount();
       if (!result.success) {
         alert(result.message);
@@ -226,7 +231,10 @@ const AccountSettings = () => {
                 </div>
               ) : (
                 <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl border border-yellow-200">
-                  <p>Change password is not available because you are logged in via {user?.provider || "a third-party provider"}.</p>
+                  <p>
+                    Change password is not available because you are logged in
+                    via {user?.provider || "a third-party provider"}.
+                  </p>
                 </div>
               )}
             </section>
@@ -268,10 +276,11 @@ const AccountSettings = () => {
                         Complexity Score
                       </span>
                       <span
-                        className={`text-xl font-black ${strengthData.score > 75
-                          ? "text-[#FF6D1F]"
-                          : "text-white"
-                          }`}
+                        className={`text-xl font-black ${
+                          strengthData.score > 75
+                            ? "text-[#FF6D1F]"
+                            : "text-white"
+                        }`}
                       >
                         {strengthData.label}
                       </span>
@@ -301,14 +310,16 @@ const AccountSettings = () => {
                       ].map((item, idx) => (
                         <li
                           key={idx}
-                          className={`flex items-center gap-3 text-sm ${item.check ? "text-white" : "text-gray-500"
-                            }`}
+                          className={`flex items-center gap-3 text-sm ${
+                            item.check ? "text-white" : "text-gray-500"
+                          }`}
                         >
                           <div
-                            className={`w-4 h-4 rounded-full border ${item.check
-                              ? "bg-[#FF6D1F] border-[#FF6D1F]"
-                              : "border-white/20"
-                              }`}
+                            className={`w-4 h-4 rounded-full border ${
+                              item.check
+                                ? "bg-[#FF6D1F] border-[#FF6D1F]"
+                                : "border-white/20"
+                            }`}
                           />
                           {item.text}
                         </li>

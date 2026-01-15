@@ -24,3 +24,4 @@ userrouter.delete("/delete", authuser, deleteAccount);
 userrouter.get("/list", adminAuth, getAllUsers);
 userrouter.delete("/admin/delete/:id", adminAuth, deleteUserById);
 export default userrouter;
+//

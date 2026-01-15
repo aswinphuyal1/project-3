@@ -17,4 +17,3 @@ const noteSchema = new mongoose.Schema({
 const noteModel = mongoose.models.note || mongoose.model("note", noteSchema);
 
 export default noteModel;
-//
