@@ -20,7 +20,7 @@ const io = new Server(server, {
   // 7. Configure CORS (Cross-Origin Resource Sharing) settings
   cors: {
     // 8. Allow connections only from this origin (frontend URL)
-    origin: ["http://localhost:3000"],
+    origin: [process.env.FRONTEND_URL],
     // 9. Allow only GET and POST HTTP methods for handshake
     methods: ["GET", "POST"],
   },
