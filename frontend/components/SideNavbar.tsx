@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { id: 2, label: "Explore Notes", icon: NotebookText, path: "/explore" },
   { id: 3, label: "Messages", icon: MessageSquare, path: "/message" },
   // { id: 4, label: "Live Sessions", icon: Video, path: "/live" },
-  { id: 5, label: "AI Assistant", icon: Brain, path: "/ai" },
+  { id: 5, label: "AI Assistant", icon: Brain, path: "/AI" },
   { id: 6, label: "My Profile", icon: User, path: "/profile" },
   { id: 7, label: "Upload", icon: NotebookText, path: "/upload" },
   { id: 8, label: "Settings", icon: Settings, path: "/setting" },

@@ -37,7 +37,7 @@ const AIAssistantWidget: React.FC = () => {
     // 2. Navigate to AI page after a brief delay for visual feedback
     setTimeout(() => {
       // For Next.js App Router:
-      router.push("/ai"); // Make sure this matches your route
+      router.push("/AI"); // Make sure this matches your route
 
       // OR for React Router:
       // navigate("/ai-assistant");

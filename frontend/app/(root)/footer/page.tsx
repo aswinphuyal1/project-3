@@ -19,7 +19,7 @@ const footerNavs = {
   ],
   Features: [
     { title: "Explore Notes", href: "/explore" },
-    { title: "AI Assistant", href: "/ai" },
+    { title: "AI Assistant", href: "/AI" },
     { title: "Live Sessions", href: "/home" },
     { title: "Creator Tools", href: "/profile" },
   ],
