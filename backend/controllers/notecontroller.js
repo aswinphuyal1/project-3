@@ -21,7 +21,7 @@ const uploadNote = async (req, res) => {
 
         // Delete local file after upload
         fs.unlinkSync(file.path);
-
+        
         const newNote = new noteModel({
             title,
             description,
