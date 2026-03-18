@@ -1,0 +1,1954 @@
+================================================================================
+                   COMPLETE MIGRATION & IMPROVEMENT GUIDE
+              For: project-3 (Next.js + Express + MongoDB + Socket.io)
+================================================================================
+
+Written as a senior engineer mentoring a developer step-by-step.
+This file does NOT modify any existing code. It is a guide only.
+
+================================================================================
+# 1. PROJECT UNDERSTANDING (HIGH-LEVEL ANALYSIS)
+================================================================================
+
+## 1.1 How This Repository Is Structured
+
+Looking at this repository, you have a classic full-stack JavaScript application
+split into two main directories:
+
+  backend/   — Node.js + Express REST API + Socket.io (real-time)
+  frontend/  — Next.js 16 app with React 19, TypeScript, and Tailwind CSS
+
+### Backend Breakdown
+
+  server.js              — Entry point. Boots Express, connects MongoDB and
+                           Cloudinary, registers routes, and starts the HTTP +
+                           WebSocket server.
+  config/                — Holds mongodb.js and cloudinary.js connection helpers.
+  models/                — Mongoose schemas (usermodel, messagemodel,
+                           conversationmodel, notemodel).
+  controllers/           — Business logic for each route group.
+  routes/                — Express router files (userroute, messageroute,
+                           noteroute).
+  middleware/            — Auth middleware (JWT verification, etc.).
+  socket/socket.js       — Socket.io server setup shared with Express app.
+
+### Frontend Breakdown
+
+  app/                   — Next.js App Router pages and layouts.
+  components/            — Reusable UI components (built with Radix UI +
+                           Tailwind + shadcn/ui).
+  context/               — React Context providers:
+                             Authcontext.tsx   (user authentication state)
+                             NoteContext.tsx   (notes CRUD state)
+                             SocketContext.tsx (WebSocket connection state)
+                             UploadContext.tsx (file upload state)
+                             ViewContext.tsx   (UI view/toggle state)
+  lib/                   — Utility helpers (e.g. cn() for classnames).
+  public/                — Static assets.
+
+### Current Technology Stack
+
+  Database   : MongoDB (via Mongoose ODM)
+  Auth       : JWT (jsonwebtoken) + bcrypt
+  File Store : Cloudinary
+  Payments   : Stripe + Razorpay
+  AI         : Google Generative AI
+  Realtime   : Socket.io
+  Frontend   : Next.js, React 19, TypeScript, Tailwind, Radix UI
+  Forms      : react-hook-form + Zod + Yup
+  Charts     : Recharts
+  State      : React Context API (5 separate contexts)
+
+## 1.2 Common Patterns Identified
+
+1. Context API for global state — Each domain (auth, notes, socket, upload, view)
+   has its own context. This is a common React pattern but does not scale well.
+
+2. Mongoose ODM — Models use Mongoose schemas directly inside controllers,
+   meaning database logic is tightly coupled to route handlers.
+
+3. REST API — Standard Express routes (GET/POST/PUT/DELETE) with JWT middleware
+   on protected routes.
+
+4. Socket.io — Real-time messaging, likely for chat features based on the
+   conversationmodel and messagemodel.
+
+5. Supabase client is also present (both frontend and backend package.json list
+   @supabase/supabase-js), meaning there may be hybrid usage of MongoDB and
+   Supabase (PostgreSQL under the hood) already partially explored.
+
+## 1.3 Typical Pain Points & Scalability Issues
+
+1. MULTIPLE CONTEXTS cause prop-drilling alternatives and unnecessary re-renders.
+   Any state change in Authcontext re-renders every component subscribed to it,
+   even if only a small slice of state changed.
+
+2. MONGOOSE TIGHT COUPLING means controllers directly call Mongoose models.
+   If you ever need to swap the database, you must rewrite every controller.
+
+3. NO CACHING means every API call hits MongoDB directly. Under load, this
+   creates a bottleneck, especially for read-heavy endpoints like fetching notes
+   or user profiles.
+
+4. NO CENTRALIZED ERROR HANDLING means errors are likely handled inconsistently
+   across controllers.
+
+5. MONGODB FOR RELATIONAL DATA — If your data has many relationships (users have
+   conversations, conversations have messages, messages belong to users), a
+   relational database like PostgreSQL is actually a better fit.
+
+6. NO CI/CD — Without automated testing and deployment pipelines, every deploy
+   is a manual risk.
+
+
+================================================================================
+# 2. MIGRATION FROM MONGODB TO POSTGRESQL
+================================================================================
+
+## 2.1 Why PostgreSQL
+
+Right now you are using MongoDB (via Mongoose). MongoDB is excellent for
+unstructured or deeply nested data, but your data models look relational:
+
+  - A User has many Conversations
+  - A Conversation has many Messages
+  - A Message belongs to a User and a Conversation
+  - A User has many Notes
+
+This is textbook relational data. PostgreSQL is better here because:
+
+  ACID Compliance    — Every transaction is atomic. No partial writes. If a
+                       message insert fails halfway, it rolls back completely.
+
+  Foreign Keys       — Enforce data integrity at the database level. You cannot
+                       accidentally create a message for a user that does not exist.
+
+  Advanced Indexing  — B-tree, GIN, GiST, BRIN indexes. Full-text search built
+                       in. Much faster for complex queries than MongoDB.
+
+  Joins              — Fetch a user and all their messages in one query using
+                       JOINs. MongoDB requires multiple round-trips or complex
+                       $lookup aggregations.
+
+  Mature Ecosystem   — PostgreSQL has been battle-tested for 30+ years. Tools
+                       like pgAdmin, Prisma, Supabase, and Neon make it
+                       developer-friendly.
+
+  Cost & Hosting     — Supabase (which you already partially use) provides free
+                       PostgreSQL hosting with an excellent dashboard.
+
+  JSON Support       — PostgreSQL supports JSONB columns. So if some of your
+                       data IS unstructured, you can still store it as JSON.
+
+NOTE: Since @supabase/supabase-js is already in both your backend and frontend
+package.json files, it is very likely that Supabase (PostgreSQL) is already
+partially set up. This migration may be less work than you think.
+
+## 2.2 Migration Strategy
+
+The golden rule of database migration is: NEVER do a big bang cutover.
+Never switch everything off on Friday and hope the new DB works on Monday.
+Instead, follow this safe parallel-run strategy:
+
+  PHASE 1 — Set up PostgreSQL alongside MongoDB (run both simultaneously).
+  PHASE 2 — Write new features to PostgreSQL only.
+  PHASE 3 — Backfill historical MongoDB data to PostgreSQL.
+  PHASE 4 — Switch reads to PostgreSQL. Keep MongoDB as fallback.
+  PHASE 5 — Switch writes to PostgreSQL.
+  PHASE 6 — Monitor for 2 weeks with no issues.
+  PHASE 7 — Decommission MongoDB.
+
+This approach means the app keeps working at every step. If something breaks,
+you revert only the affected piece, not the entire system.
+
+### Schema Design Principles
+
+When designing your PostgreSQL schema, think in these terms:
+
+1. ENTITIES — Each main noun in your domain becomes a table.
+   (users, conversations, messages, notes)
+
+2. RELATIONSHIPS — Use foreign keys to link tables.
+   (messages.user_id REFERENCES users.id)
+
+3. NORMALIZATION — Avoid repeating data. Store a user's name once in users,
+   not in every messages row.
+
+4. TIMESTAMPS — Every table should have created_at and updated_at columns.
+   Use DEFAULT NOW() so they are set automatically.
+
+5. SOFT DELETE — Instead of actually deleting rows (which breaks foreign keys
+   and audit trails), add a deleted_at TIMESTAMP column. NULL means active.
+
+6. UUIDs vs SERIAL — Consider using UUID as your primary key type. It is safer
+   for distributed systems and avoids exposing sequential IDs in your API.
+
+## 2.3 Implementation Steps
+
+### Step 1 — Install PostgreSQL locally (for development)
+
+On macOS:
+  brew install postgresql@16
+  brew services start postgresql@16
+
+On Ubuntu/Debian:
+  sudo apt update
+  sudo apt install postgresql postgresql-contrib
+  sudo systemctl start postgresql
+
+On Windows:
+  Download the installer from https://www.postgresql.org/download/windows/
+  Follow the GUI installer. Remember the postgres user password you set.
+
+Verify it is running:
+  psql --version
+  psql -U postgres
+
+### Step 2 — Create your database
+
+  psql -U postgres
+  CREATE DATABASE project3_db;
+  CREATE USER project3_user WITH ENCRYPTED PASSWORD 'your_secure_password';
+  GRANT ALL PRIVILEGES ON DATABASE project3_db TO project3_user;
+  \q
+
+### Step 3 — Choose an ORM: Prisma (Recommended)
+
+For a Next.js + Node.js project, Prisma is the best choice in 2024-2025 because:
+  - Type-safe database queries (works perfectly with TypeScript)
+  - Auto-generates types from your schema
+  - Excellent migration system (prisma migrate)
+  - Works with both the backend (Node.js) and can be used in Next.js API routes
+  - Visual database browser (Prisma Studio)
+  - Supabase and Neon both have official Prisma guides
+
+Install Prisma in your backend:
+  cd backend
+  npm install prisma @prisma/client
+  npx prisma init
+
+This creates:
+  backend/prisma/schema.prisma   — Your database schema definition
+  backend/.env                   — With DATABASE_URL placeholder
+
+### Step 4 — Set up Environment Variables
+
+In backend/.env (NEVER commit this file to git — it's already in .gitignore):
+
+  DATABASE_URL="postgresql://project3_user:your_secure_password@localhost:5432/project3_db"
+  
+  # If using Supabase (recommended — you already have the client installed):
+  DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres"
+  
+  # Keep your existing variables too:
+  MONGODB_URI=mongodb+srv://...   # Keep until Phase 7 migration complete
+  JWT_SECRET=your_jwt_secret
+  CLOUDINARY_CLOUD_NAME=...
+  CLOUDINARY_API_KEY=...
+  CLOUDINARY_API_SECRET=...
+
+### Step 5 — Design Your Prisma Schema
+
+Open backend/prisma/schema.prisma and define your models. Here is what your
+schema should look like based on your existing Mongoose models:
+
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+
+  model User {
+    id              String         @id @default(uuid())
+    email           String         @unique
+    username        String         @unique
+    passwordHash    String
+    profilePicture  String?
+    createdAt       DateTime       @default(now())
+    updatedAt       DateTime       @updatedAt
+    deletedAt       DateTime?
+
+    sentMessages     Message[]     @relation("SentMessages")
+    conversations    ConversationParticipant[]
+    notes            Note[]
+  }
+
+  model Conversation {
+    id           String                    @id @default(uuid())
+    createdAt    DateTime                  @default(now())
+    updatedAt    DateTime                  @updatedAt
+
+    participants ConversationParticipant[]
+    messages     Message[]
+  }
+
+  model ConversationParticipant {
+    userId         String
+    conversationId String
+    joinedAt       DateTime @default(now())
+
+    user           User         @relation(fields: [userId], references: [id])
+    conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+    @@id([userId, conversationId])
+  }
+
+  model Message {
+    id             String       @id @default(uuid())
+    content        String
+    imageUrl       String?
+    senderId       String
+    conversationId String
+    createdAt      DateTime     @default(now())
+    deletedAt      DateTime?
+
+    sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+    conversation   Conversation @relation(fields: [conversationId], references: [id])
+  }
+
+  model Note {
+    id          String    @id @default(uuid())
+    title       String
+    content     String
+    userId      String
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    deletedAt   DateTime?
+
+    user        User      @relation(fields: [userId], references: [id])
+  }
+
+### Step 6 — Run Your First Migration
+
+  cd backend
+  npx prisma migrate dev --name init
+
+This command:
+  1. Compares your schema.prisma to your database
+  2. Generates SQL migration files in prisma/migrations/
+  3. Runs the SQL against your database
+  4. Generates the Prisma Client (type-safe query builder)
+
+You will see something like:
+  ✔ Generated Prisma Client
+
+### Step 7 — Initialize the Prisma Client
+
+Create backend/config/prisma.js:
+
+  import { PrismaClient } from '@prisma/client';
+
+  const prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  });
+
+  export default prisma;
+
+### Step 8 — Data Migration Script Strategy
+
+Write a one-time migration script at backend/scripts/migrate-mongodb-to-postgres.js:
+
+  // High-level pseudocode — fill in with actual Mongoose models and Prisma client
+  import mongoose from 'mongoose';
+  import prisma from '../config/prisma.js';
+  import UserModel from '../models/usermodel.js';
+
+  async function migrateUsers() {
+    const mongoUsers = await UserModel.find({});
+    
+    for (const user of mongoUsers) {
+      try {
+        await prisma.user.upsert({
+          where: { email: user.email },
+          update: {},  // Don't overwrite if already migrated
+          create: {
+            email: user.email,
+            username: user.username || user.email.split('@')[0],
+            passwordHash: user.password,
+            profilePicture: user.profilePicture || null,
+            createdAt: user.createdAt || new Date(),
+          }
+        });
+      } catch (err) {
+        console.error('Failed to migrate user:', user.email, err.message);
+        // Log and continue — do NOT throw. Collect failures and fix them.
+      }
+    }
+    console.log(`Migrated ${mongoUsers.length} users`);
+  }
+
+  // Run this script ONCE, in a maintenance window, with MongoDB still live.
+  // After verifying data in PostgreSQL, switch your app to read from PostgreSQL.
+
+## 2.4 Refactoring the Data Layer
+
+Currently your controllers directly call Mongoose models like:
+  const user = await usermodel.findOne({ email });
+
+This tightly couples your business logic to MongoDB. If you ever want to change
+the database, you have to rewrite every controller. The fix is the Repository
+Pattern:
+
+  HOW IT WORKS:
+    Controller → calls → Service → calls → Repository → calls → Database
+
+  BENEFIT:
+    If you swap MongoDB for PostgreSQL, you only rewrite the Repository layer.
+    Controllers and Services stay unchanged.
+
+Example — Create backend/repositories/userRepository.js:
+
+  import prisma from '../config/prisma.js';
+
+  export const userRepository = {
+    findByEmail: (email) =>
+      prisma.user.findUnique({ where: { email } }),
+
+    findById: (id) =>
+      prisma.user.findUnique({ where: { id } }),
+
+    create: (data) =>
+      prisma.user.create({ data }),
+
+    update: (id, data) =>
+      prisma.user.update({ where: { id }, data }),
+
+    softDelete: (id) =>
+      prisma.user.update({ where: { id }, data: { deletedAt: new Date() } }),
+  };
+
+Example — Create backend/services/userService.js:
+
+  import { userRepository } from '../repositories/userRepository.js';
+  import bcrypt from 'bcrypt';
+  import jwt from 'jsonwebtoken';
+
+  export const userService = {
+    async register({ email, password, username }) {
+      const existing = await userRepository.findByEmail(email);
+      if (existing) throw new Error('Email already registered');
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      return userRepository.create({ email, username, passwordHash });
+    },
+
+    async login({ email, password }) {
+      const user = await userRepository.findByEmail(email);
+      if (!user) throw new Error('Invalid credentials');
+
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) throw new Error('Invalid credentials');
+
+      const token = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      return { user, token };
+    },
+  };
+
+Your controller then becomes clean and simple:
+
+  import { userService } from '../services/userService.js';
+
+  export const registerUser = async (req, res) => {
+    try {
+      const user = await userService.register(req.body);
+      res.status(201).json({ success: true, user });
+    } catch (err) {
+      res.status(400).json({ success: false, message: err.message });
+    }
+  };
+
+## 2.5 Testing the Migration
+
+### Validation Steps
+
+After running your migration script, verify the data matches:
+
+  1. Count check:
+       MongoDB users count === PostgreSQL users count
+       MongoDB messages count === PostgreSQL messages count
+       (Do this for every table)
+
+  2. Sample check:
+       Pick 5-10 random MongoDB records and manually verify they appear
+       correctly in PostgreSQL with all fields intact.
+
+  3. Referential integrity:
+       Run: SELECT COUNT(*) FROM messages WHERE sender_id NOT IN (SELECT id FROM users);
+       This should return 0. Any non-zero means orphaned records.
+
+  4. Application smoke test:
+       After switching the read layer to PostgreSQL, manually test:
+       - Login/register
+       - Create a note
+       - Send a message
+       - View conversation history
+
+### Rollback Strategy
+
+BEFORE switching production:
+  - Take a MongoDB snapshot (mongodump)
+  - Keep your MONGODB_URI in .env but as MONGODB_URI_BACKUP
+  - Your code should still compile and run against MongoDB
+
+IF something goes wrong after switching:
+  - Change DATABASE_URL back to MONGODB_URI in your environment variables
+  - Restart the server
+  - The app is back on MongoDB within seconds
+
+NEVER delete MongoDB data until you have been running on PostgreSQL cleanly
+for at least 2-4 weeks in production.
+
+
+================================================================================
+# 3. INTRODUCING REDIS CACHING
+================================================================================
+
+## 3.1 Why Redis
+
+Redis is an in-memory data store. Think of it as a super-fast key-value database
+that lives in your server's RAM instead of on disk.
+
+WITHOUT Redis:
+  User requests /api/notes
+  → Express hits PostgreSQL
+  → PostgreSQL reads from disk
+  → Returns 200ms response
+  (Repeat this 1000 times per minute)
+
+WITH Redis:
+  User requests /api/notes (first time)
+  → Cache MISS → Express hits PostgreSQL → stores result in Redis
+  → Returns 200ms response
+
+  User requests /api/notes (second time onward)
+  → Cache HIT → Express reads from Redis (RAM)
+  → Returns 5ms response  ← 40x faster!
+
+### When to use caching vs when NOT to
+
+USE CACHING when:
+  ✓ Data is read frequently but changes infrequently (e.g., user profile, notes list)
+  ✓ Computation is expensive (e.g., complex DB aggregations, AI responses)
+  ✓ Same response served to many users (e.g., public content, charts)
+  ✓ Sessions and auth tokens
+
+DO NOT CACHE when:
+  ✗ Data changes after every write and must be immediately fresh
+  ✗ The data is per-user AND unique AND changes constantly (e.g., live typing indicators)
+  ✗ Security-sensitive data (passwords, payment info)
+
+## 3.2 What to Cache in This Project
+
+Looking at your routes, here is what makes sense to cache:
+
+  CACHE THESE:
+    - User profile data (GET /api/user/:id) — changes rarely, read often
+    - Notes list per user (GET /api/notes) — good candidate with short TTL
+    - Conversation list (GET /api/messages/conversations) — read often
+    - AI responses — expensive to generate, can be cached by prompt hash
+
+  DO NOT CACHE THESE:
+    - Authentication endpoints (POST /api/user/login) — must be live
+    - Payment endpoints — must be live and exact
+    - Socket.io events — real-time by nature
+    - File uploads (POST with Cloudinary) — side effects
+
+## 3.3 Implementation Plan
+
+### Step 1 — Install Redis locally
+
+On macOS:
+  brew install redis
+  brew services start redis
+  redis-cli ping  # Should return PONG
+
+On Ubuntu/Debian:
+  sudo apt install redis-server
+  sudo systemctl start redis
+  redis-cli ping
+
+On Windows:
+  Use WSL2 with Ubuntu and follow the Ubuntu steps above.
+  Alternatively, use Redis on Upstash (free tier, cloud Redis) at upstash.com.
+
+### Step 2 — Install Redis client in backend
+
+  cd backend
+  npm install ioredis
+
+Why ioredis? It is the most reliable Redis client for Node.js. It handles
+reconnection automatically, supports Promises natively, and has TypeScript types.
+
+### Step 3 — Setup Redis client
+
+Create backend/config/redis.js:
+
+  import Redis from 'ioredis';
+
+  const redis = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD || undefined,
+    retryStrategy: (times) => {
+      // Retry up to 3 times, then stop.
+      if (times > 3) return null;
+      return Math.min(times * 200, 2000);
+    },
+  });
+
+  redis.on('connect', () => console.log('Redis connected'));
+  redis.on('error', (err) => console.error('Redis error:', err.message));
+
+  export default redis;
+
+Add to backend/.env:
+  REDIS_HOST=localhost
+  REDIS_PORT=6379
+  REDIS_PASSWORD=   # Leave empty for local dev, set for production
+
+### Step 4 — Cache Middleware Concept
+
+Create a reusable caching middleware at backend/middleware/cacheMiddleware.js:
+
+  import redis from '../config/redis.js';
+
+  export const cache = (ttlSeconds = 60) => async (req, res, next) => {
+    const key = `cache:${req.method}:${req.originalUrl}:${req.user?.id || 'anon'}`;
+    
+    try {
+      const cached = await redis.get(key);
+      if (cached) {
+        return res.json(JSON.parse(cached));
+      }
+    } catch (err) {
+      // If Redis fails, don't crash the request — just skip cache
+      console.error('Cache read error:', err.message);
+    }
+
+    // Intercept res.json to store the response in cache
+    const originalJson = res.json.bind(res);
+    res.json = async (body) => {
+      try {
+        await redis.setex(key, ttlSeconds, JSON.stringify(body));
+      } catch (err) {
+        console.error('Cache write error:', err.message);
+      }
+      return originalJson(body);
+    };
+
+    next();
+  };
+
+  // Cache invalidation helper
+  export const invalidateCache = async (pattern) => {
+    try {
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) await redis.del(...keys);
+    } catch (err) {
+      console.error('Cache invalidation error:', err.message);
+    }
+  };
+
+Use it in routes like:
+
+  import { cache } from '../middleware/cacheMiddleware.js';
+
+  // Cache the notes list for 30 seconds
+  noteRouter.get('/', authenticateUser, cache(30), getNotes);
+
+## 3.4 Caching Strategies
+
+### Cache-Aside Pattern (Recommended — what we built above)
+
+Your application code is responsible for managing the cache:
+  1. Check Redis first.
+  2. If cache HIT → return Redis data.
+  3. If cache MISS → fetch from DB → store in Redis → return data.
+
+This is the most flexible pattern. You control exactly what is cached.
+
+### TTL (Time-To-Live) Strategy
+
+Every cached item should expire automatically. The right TTL depends on how
+stale the data can be:
+
+  User profile:           300 seconds (5 minutes)
+  Notes list:             30 seconds
+  Conversation list:      60 seconds
+  Public/static content:  3600 seconds (1 hour)
+  AI responses:           86400 seconds (24 hours)
+  Sessions:               604800 seconds (7 days)
+
+Start with shorter TTLs. It is easier to increase TTL after you verify
+cache hit rates than to debug stale data caused by a TTL that is too long.
+
+### Cache Invalidation
+
+"There are only two hard things in computer science: cache invalidation and
+naming things." — Phil Karlton
+
+When a user updates their notes, the cached notes list for that user must be
+cleared. Do this at the service layer:
+
+  In noteService.js, after a successful update:
+    await invalidateCache(`cache:GET:/api/notes*:${userId}*`);
+
+Group your cache keys by user ID so you can clear all of a user's cached
+data at once without clearing other users' caches.
+
+## 3.5 Pitfalls to Avoid
+
+### Stale Data
+
+PROBLEM: User updates their profile. The cache still serves the old profile
+for the next 5 minutes.
+
+SOLUTION: Always invalidate the cache for a specific key when the underlying
+data changes (on any write operation).
+
+### Over-Caching
+
+PROBLEM: You cache every endpoint. Now when a bug occurs, you cannot tell if
+the response is coming from the cache or from the DB. Debugging becomes a nightmare.
+
+SOLUTION:
+  - Start by caching only 2-3 endpoints that are clearly read-heavy.
+  - Add a response header X-Cache: HIT or X-Cache: MISS for debugging.
+  - Use Redis MONITOR command during development to see what is being cached.
+
+### Memory Limits
+
+PROBLEM: Redis is in-memory. If you cache too much, you run out of RAM.
+
+SOLUTION:
+  - Set a maxmemory limit in Redis: maxmemory 256mb
+  - Set eviction policy: maxmemory-policy allkeys-lru
+    (LRU = Least Recently Used — evicts the least recently accessed keys first)
+
+
+================================================================================
+# 4. REPLACING CONTEXT API WITH ZUSTAND
+================================================================================
+
+## 4.1 Why Zustand
+
+You currently have 5 separate Context providers:
+  Authcontext.tsx, NoteContext.tsx, SocketContext.tsx,
+  UploadContext.tsx, ViewContext.tsx
+
+Every component wrapped in a context re-renders when ANY piece of state in
+that context changes, even if the component only uses one small value.
+
+EXAMPLE OF THE PROBLEM:
+  Authcontext holds { user, token, isLoading, error }.
+  A component only needs 'user'. But if 'isLoading' changes (briefly to true
+  then false during any API call), your component re-renders twice — even though
+  the user data it cares about did not change.
+
+  Multiply this by 50+ components and every API call triggers 100+ re-renders.
+
+### Why Zustand Solves This
+
+Zustand uses a subscription model. Components subscribe to specific slices of
+state. They ONLY re-render when that specific slice changes.
+
+  // Component only subscribes to 'user', not the whole auth state
+  const user = useAuthStore((state) => state.user);
+  // This component will NEVER re-render if isLoading or error changes.
+
+Zustand is also:
+  - Minimal API (3-4 functions to learn total)
+  - No Provider wrapping needed in most cases
+  - Works great with TypeScript
+  - 1.1 KB gzipped (Context API: 0 KB but Context API's re-render overhead is real)
+  - DevTools support (Redux DevTools works with Zustand)
+
+## 4.2 Migration Strategy
+
+CRITICAL: Do NOT rip out all 5 Contexts at once. That will break everything.
+Follow this gradual migration plan:
+
+  WEEK 1: Install Zustand. Create the authStore. Keep Authcontext running.
+  WEEK 2: Migrate one component at a time from useAuthContext to useAuthStore.
+  WEEK 3: Once all components use authStore, delete Authcontext.
+  WEEK 4: Repeat for NoteContext → noteStore.
+  CONTINUE until all 5 contexts are migrated.
+
+This approach means:
+  - The app works correctly at every step
+  - You can test each migrated component individually
+  - If a bug appears, you know it is in the last component you migrated
+
+### Coexistence During Migration
+
+During the transition, Context and Zustand can coexist. You can have some
+components using useAuthContext and others using useAuthStore simultaneously
+— as long as they both read from the same source of truth.
+
+To avoid data inconsistency during migration, initialize your Zustand store
+FROM the Context:
+
+  // In a transition component or hook:
+  const { user, token } = useAuthContext();  // old way
+  const setUser = useAuthStore((s) => s.setUser);
+  
+  // Keep Zustand in sync with Context during transition
+  useEffect(() => {
+    setUser(user);
+  }, [user]);
+
+## 4.3 Implementation Steps
+
+### Step 1 — Install Zustand
+
+  cd frontend
+  npm install zustand
+
+### Step 2 — Create Store Structure
+
+Create a stores directory:
+  frontend/store/
+    authStore.ts
+    noteStore.ts
+    socketStore.ts
+    uploadStore.ts
+    viewStore.ts
+    index.ts       (re-exports all stores)
+
+### Step 3 — Create the Auth Store
+
+Create frontend/store/authStore.ts:
+
+  import { create } from 'zustand';
+  import { persist } from 'zustand/middleware';
+  import axios from 'axios';
+
+  interface User {
+    id: string;
+    email: string;
+    username: string;
+    profilePicture?: string;
+  }
+
+  interface AuthState {
+    user: User | null;
+    token: string | null;
+    isLoading: boolean;
+    error: string | null;
+
+    // Actions
+    login: (email: string, password: string) => Promise<void>;
+    register: (data: RegisterData) => Promise<void>;
+    logout: () => void;
+    clearError: () => void;
+  }
+
+  export const useAuthStore = create<AuthState>()(
+    persist(
+      (set, get) => ({
+        user: null,
+        token: null,
+        isLoading: false,
+        error: null,
+
+        login: async (email, password) => {
+          set({ isLoading: true, error: null });
+          try {
+            const { data } = await axios.post('/api/user/login', { email, password });
+            set({ user: data.user, token: data.token, isLoading: false });
+          } catch (err: any) {
+            set({ error: err.response?.data?.message || 'Login failed', isLoading: false });
+          }
+        },
+
+        register: async (registerData) => {
+          set({ isLoading: true, error: null });
+          try {
+            const { data } = await axios.post('/api/user/register', registerData);
+            set({ user: data.user, token: data.token, isLoading: false });
+          } catch (err: any) {
+            set({ error: err.response?.data?.message || 'Registration failed', isLoading: false });
+          }
+        },
+
+        logout: () => {
+          set({ user: null, token: null, error: null });
+        },
+
+        clearError: () => set({ error: null }),
+      }),
+      {
+        name: 'auth-storage',    // Key in localStorage
+        partialize: (state) => ({ user: state.user, token: state.token }),
+        // Only persist user and token — NOT isLoading or error
+      }
+    )
+  );
+
+### Step 4 — Create the Note Store
+
+Create frontend/store/noteStore.ts:
+
+  import { create } from 'zustand';
+  import axios from 'axios';
+
+  interface Note {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface NoteState {
+    notes: Note[];
+    selectedNote: Note | null;
+    isLoading: boolean;
+    error: string | null;
+
+    fetchNotes: () => Promise<void>;
+    createNote: (data: Partial<Note>) => Promise<void>;
+    updateNote: (id: string, data: Partial<Note>) => Promise<void>;
+    deleteNote: (id: string) => Promise<void>;
+    selectNote: (note: Note | null) => void;
+  }
+
+  export const useNoteStore = create<NoteState>()((set, get) => ({
+    notes: [],
+    selectedNote: null,
+    isLoading: false,
+    error: null,
+
+    fetchNotes: async () => {
+      set({ isLoading: true });
+      try {
+        const { data } = await axios.get('/api/notes');
+        set({ notes: data.notes, isLoading: false });
+      } catch (err: any) {
+        set({ error: err.message, isLoading: false });
+      }
+    },
+
+    createNote: async (noteData) => {
+      try {
+        const { data } = await axios.post('/api/notes', noteData);
+        set((state) => ({ notes: [data.note, ...state.notes] }));
+      } catch (err: any) {
+        set({ error: err.message });
+      }
+    },
+
+    updateNote: async (id, noteData) => {
+      try {
+        const { data } = await axios.put(`/api/notes/${id}`, noteData);
+        set((state) => ({
+          notes: state.notes.map((n) => n.id === id ? data.note : n),
+          selectedNote: state.selectedNote?.id === id ? data.note : state.selectedNote,
+        }));
+      } catch (err: any) {
+        set({ error: err.message });
+      }
+    },
+
+    deleteNote: async (id) => {
+      try {
+        await axios.delete(`/api/notes/${id}`);
+        set((state) => ({
+          notes: state.notes.filter((n) => n.id !== id),
+          selectedNote: state.selectedNote?.id === id ? null : state.selectedNote,
+        }));
+      } catch (err: any) {
+        set({ error: err.message });
+      }
+    },
+
+    selectNote: (note) => set({ selectedNote: note }),
+  }));
+
+## 4.4 Refactoring Components
+
+### Old way (Context API):
+
+  import { useAuth } from '../context/Authcontext';
+
+  function ProfileButton() {
+    const { user, logout } = useAuth();  // Re-renders on ANY auth state change
+    return <button onClick={logout}>{user?.username}</button>;
+  }
+
+### New way (Zustand — granular subscriptions):
+
+  import { useAuthStore } from '../store/authStore';
+
+  function ProfileButton() {
+    const username = useAuthStore((state) => state.user?.username);  // Only re-renders when username changes
+    const logout = useAuthStore((state) => state.logout);            // logout is a stable reference — never re-renders
+    return <button onClick={logout}>{username}</button>;
+  }
+
+### The Selector Pattern
+
+The key to avoiding re-renders in Zustand is using selector functions:
+
+  // BAD — subscribes to the entire store, re-renders on any change:
+  const store = useAuthStore();
+  const user = store.user;
+
+  // GOOD — subscribes only to user, re-renders only when user changes:
+  const user = useAuthStore((state) => state.user);
+
+  // ALSO GOOD — subscribes to multiple values efficiently:
+  const { user, isLoading } = useAuthStore(
+    (state) => ({ user: state.user, isLoading: state.isLoading }),
+    // Optional equality function to prevent re-renders when the object reference changes
+    // but values are the same:
+    (a, b) => a.user === b.user && a.isLoading === b.isLoading
+  );
+
+## 4.5 Best Practices
+
+### Slice Pattern (for large stores)
+
+If a store grows very large, split it into slices:
+
+  // store/slices/authSlice.ts
+  export const createAuthSlice = (set, get) => ({
+    user: null,
+    token: null,
+    login: async (...) => { ... },
+    logout: () => { ... },
+  });
+
+  // store/rootStore.ts
+  import { create } from 'zustand';
+  import { createAuthSlice } from './slices/authSlice';
+  import { createNoteSlice } from './slices/noteSlice';
+
+  export const useStore = create((set, get) => ({
+    ...createAuthSlice(set, get),
+    ...createNoteSlice(set, get),
+  }));
+
+### Keep Stores Modular
+
+  - One store per domain (auth, notes, messages, ui)
+  - Do NOT put everything in one giant store
+  - Keep async logic (API calls) inside the store actions, not in components
+  - Components should only call store actions, never call axios directly
+
+### Zustand DevTools
+
+Add devtools middleware during development for debugging:
+
+  import { devtools } from 'zustand/middleware';
+
+  export const useAuthStore = create()(
+    devtools(
+      persist(
+        (set, get) => ({ ... }),
+        { name: 'auth-storage' }
+      ),
+      { name: 'AuthStore' }  // Name shown in Redux DevTools
+    )
+  );
+
+Install the Redux DevTools browser extension to use this feature.
+
+
+================================================================================
+# 5. PERFORMANCE OPTIMIZATION
+================================================================================
+
+## 5.1 Code Splitting (Frontend)
+
+Next.js does code splitting automatically per page. But within pages, you should
+also split large components:
+
+  // Instead of:
+  import HeavyEditor from './HeavyEditor';
+
+  // Use:
+  import dynamic from 'next/dynamic';
+  const HeavyEditor = dynamic(() => import('./HeavyEditor'), {
+    loading: () => <p>Loading editor...</p>,
+    ssr: false,  // Set to false if the component uses browser-only APIs
+  });
+
+Apply this to:
+  - Rich text editors (like the note editor)
+  - Chart components (Recharts components are large)
+  - AI chat components (they use the generative-ai SDK which is large)
+
+## 5.2 Lazy Loading
+
+In Next.js App Router, use the `loading.tsx` file pattern:
+
+  app/
+    notes/
+      page.tsx      — The notes page
+      loading.tsx   — Shown while page.tsx is loading (streaming SSR)
+
+This prevents the entire page from being blocked while data loads.
+
+For images, always use Next.js Image component with lazy loading:
+
+  import Image from 'next/image';
+
+  <Image
+    src={user.profilePicture}
+    alt={user.username}
+    width={40}
+    height={40}
+    loading="lazy"
+  />
+
+## 5.3 API Optimization
+
+### Pagination
+
+Never return all records at once. Implement cursor-based pagination:
+
+  // Instead of:
+  GET /api/notes → returns all 500 notes
+
+  // Do:
+  GET /api/notes?cursor=<lastNoteId>&limit=20 → returns 20 notes after cursor
+
+  // In Prisma:
+  const notes = await prisma.note.findMany({
+    where: { userId, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    cursor: cursor ? { id: cursor } : undefined,
+    skip: cursor ? 1 : 0,  // Skip the cursor itself
+  });
+
+### Field Selection
+
+Only return the fields the client actually needs:
+
+  // Instead of:
+  SELECT * FROM notes
+
+  // Do:
+  SELECT id, title, created_at FROM notes  // For list view
+  SELECT * FROM notes WHERE id = ?         // For detail view
+
+  // In Prisma:
+  prisma.note.findMany({
+    select: { id: true, title: true, createdAt: true }  // For list
+  });
+
+### Request Batching
+
+If you are making multiple API calls on page load, consider combining them:
+
+  // Instead of 3 separate API calls:
+  GET /api/user/profile
+  GET /api/notes
+  GET /api/conversations
+
+  // One combined call:
+  GET /api/dashboard → returns { user, recentNotes, recentConversations }
+
+## 5.4 Database Indexing
+
+PostgreSQL (and MongoDB) need indexes for fast queries. Without indexes, the
+database scans EVERY row to find matches (full table scan).
+
+Key indexes to add to your Prisma schema:
+
+  model Note {
+    ...
+    @@index([userId])           // Fast lookup: "all notes by this user"
+    @@index([createdAt])        // Fast sorting by date
+    @@index([userId, createdAt]) // Fast: "all notes by user, sorted by date"
+  }
+
+  model Message {
+    ...
+    @@index([conversationId])
+    @@index([senderId])
+    @@index([createdAt])
+  }
+
+  model Conversation {
+    ...
+    @@index([updatedAt])       // For "most recent conversations" queries
+  }
+
+RULE OF THUMB: Index any column you use in a WHERE clause or ORDER BY clause.
+But don't over-index — every index slows down INSERT/UPDATE operations slightly.
+
+## 5.5 Avoid Unnecessary Re-renders (Frontend)
+
+### Use useMemo for expensive computations:
+
+  const sortedNotes = useMemo(
+    () => notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [notes]  // Only recompute when notes array changes
+  );
+
+### Use useCallback for event handlers passed as props:
+
+  const handleDelete = useCallback(
+    (id: string) => deleteNote(id),
+    [deleteNote]  // deleteNote from Zustand is already stable, so this is a stable reference
+  );
+
+### Use React.memo for components that receive stable props:
+
+  const NoteCard = React.memo(({ note, onSelect }) => {
+    return <div onClick={() => onSelect(note)}>{note.title}</div>;
+  });
+
+### Avoid creating objects/arrays inline in JSX:
+
+  // BAD — creates a new object on every render, causing child re-renders:
+  <NoteCard style={{ color: 'blue' }} />
+
+  // GOOD — define the style object outside the component or useMemo it:
+  const noteStyle = { color: 'blue' };
+  <NoteCard style={noteStyle} />
+
+
+================================================================================
+# 6. FOLDER STRUCTURE IMPROVEMENTS
+================================================================================
+
+## 6.1 Current Structure Issues
+
+The current structure works for a small project but becomes hard to navigate
+as the codebase grows. Controllers are tightly coupled to models, there is no
+clear service layer, and the frontend has context and components mixed without
+a clear domain organization.
+
+## 6.2 Recommended Backend Structure
+
+  backend/
+  ├── config/
+  │   ├── mongodb.js          (keep during migration)
+  │   ├── postgresql.js       (new — Prisma client)
+  │   ├── redis.js            (new — Redis client)
+  │   └── cloudinary.js       (existing)
+  │
+  ├── prisma/
+  │   ├── schema.prisma       (database schema — single source of truth)
+  │   └── migrations/         (auto-generated SQL migration files)
+  │
+  ├── repositories/           (NEW — data access layer)
+  │   ├── userRepository.js
+  │   ├── noteRepository.js
+  │   ├── messageRepository.js
+  │   └── conversationRepository.js
+  │
+  ├── services/               (NEW — business logic layer)
+  │   ├── userService.js
+  │   ├── noteService.js
+  │   ├── messageService.js
+  │   └── authService.js
+  │
+  ├── controllers/            (existing — now thin, just calls services)
+  │   ├── userController.js
+  │   ├── noteController.js
+  │   └── messageController.js
+  │
+  ├── middleware/
+  │   ├── auth.js             (JWT verification)
+  │   ├── cache.js            (new — Redis cache middleware)
+  │   ├── errorHandler.js     (new — centralized error handling)
+  │   └── rateLimiter.js      (new — protect against abuse)
+  │
+  ├── routes/
+  │   ├── userroute.js
+  │   ├── noteroute.js
+  │   └── messageroute.js
+  │
+  ├── socket/
+  │   └── socket.js
+  │
+  ├── scripts/                (NEW — one-time scripts, not part of the app)
+  │   └── migrate-mongodb-to-postgres.js
+  │
+  ├── utils/
+  │   ├── logger.js           (new — Winston or Pino logger)
+  │   └── validators.js       (shared validation helpers)
+  │
+  └── server.js
+
+WHY THIS STRUCTURE IS BETTER:
+  - repositories/ isolates all database queries → easy to swap database
+  - services/ isolates all business logic → easy to test without a real DB
+  - controllers/ become thin → just HTTP in/out, no business logic
+  - middleware/ is organized → consistent error handling across all routes
+  - scripts/ are separate → never accidentally run in production
+
+## 6.3 Recommended Frontend Structure
+
+  frontend/
+  ├── app/                    (Next.js App Router — keep as is)
+  │   ├── (auth)/             (grouped routes for auth pages)
+  │   │   ├── login/page.tsx
+  │   │   └── register/page.tsx
+  │   ├── (dashboard)/        (grouped routes for authenticated pages)
+  │   │   ├── notes/
+  │   │   │   ├── page.tsx
+  │   │   │   └── loading.tsx
+  │   │   └── messages/
+  │   │       ├── page.tsx
+  │   │       └── loading.tsx
+  │   ├── layout.tsx
+  │   └── page.tsx
+  │
+  ├── components/             (existing — shared/generic UI components)
+  │   ├── ui/                 (shadcn/ui generated components)
+  │   └── shared/             (your custom reusable components)
+  │
+  ├── features/               (NEW — domain-specific components)
+  │   ├── auth/
+  │   │   ├── LoginForm.tsx
+  │   │   └── RegisterForm.tsx
+  │   ├── notes/
+  │   │   ├── NoteCard.tsx
+  │   │   ├── NoteEditor.tsx
+  │   │   └── NoteList.tsx
+  │   └── messages/
+  │       ├── ChatWindow.tsx
+  │       └── MessageBubble.tsx
+  │
+  ├── store/                  (NEW — Zustand stores, replacing context/)
+  │   ├── authStore.ts
+  │   ├── noteStore.ts
+  │   ├── socketStore.ts
+  │   ├── uploadStore.ts
+  │   ├── viewStore.ts
+  │   └── index.ts
+  │
+  ├── context/                (existing — keep during migration, delete after)
+  │
+  ├── hooks/                  (NEW — custom React hooks)
+  │   ├── useSocket.ts
+  │   └── useDebounce.ts
+  │
+  ├── lib/                    (existing — utility functions)
+  │   ├── utils.ts
+  │   └── api.ts              (new — centralized axios instance with interceptors)
+  │
+  └── types/                  (NEW — TypeScript type definitions)
+      ├── user.ts
+      ├── note.ts
+      └── message.ts
+
+WHY THIS STRUCTURE IS BETTER:
+  - features/ co-locates domain code → find all note-related UI in one place
+  - store/ replaces context/ → better performance, same organization
+  - hooks/ extracts reusable logic → no more copy-pasting useEffect patterns
+  - types/ centralizes TypeScript types → no type duplication across files
+  - lib/api.ts centralizes axios → configure auth headers once, use everywhere
+
+## 6.4 Centralized API Client
+
+Create frontend/lib/api.ts:
+
+  import axios from 'axios';
+  import { useAuthStore } from '../store/authStore';
+
+  const api = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+    timeout: 10000,
+  });
+
+  // Automatically attach auth token to every request
+  api.interceptors.request.use((config) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+
+  // Automatically handle 401 Unauthorized (token expired)
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  export default api;
+
+Now every store action uses import api from '../lib/api' instead of raw axios,
+and auth headers are handled automatically everywhere.
+
+
+================================================================================
+# 7. DEVOPS & ENVIRONMENT IMPROVEMENTS
+================================================================================
+
+## 7.1 Environment Variable Management
+
+Create a .env.example file at the root of each package (commit this to git —
+it shows other developers what variables they need WITHOUT exposing the actual values):
+
+  backend/.env.example:
+
+    # Server
+    PORT=4000
+    NODE_ENV=development
+
+    # Database
+    DATABASE_URL=postgresql://user:password@localhost:5432/project3_db
+    MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/dbname
+
+    # Redis
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+    REDIS_PASSWORD=
+
+    # Auth
+    JWT_SECRET=your_jwt_secret_min_32_chars
+
+    # Cloudinary
+    CLOUDINARY_CLOUD_NAME=
+    CLOUDINARY_API_KEY=
+    CLOUDINARY_API_SECRET=
+
+    # Payments
+    STRIPE_SECRET_KEY=
+    RAZORPAY_KEY_ID=
+    RAZORPAY_KEY_SECRET=
+
+  frontend/.env.example:
+
+    NEXT_PUBLIC_API_URL=http://localhost:4000
+    NEXT_PUBLIC_SUPABASE_URL=
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    NEXT_PUBLIC_GOOGLE_AI_API_KEY=
+
+VALIDATION: Add environment validation on startup using a library like 'zod':
+
+  // backend/config/env.js
+  import { z } from 'zod';
+
+  const envSchema = z.object({
+    DATABASE_URL: z.string().url(),
+    JWT_SECRET: z.string().min(32),
+    PORT: z.coerce.number().default(4000),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  });
+
+  export const env = envSchema.parse(process.env);
+  // If any required variable is missing, this throws immediately on startup
+  // instead of failing silently 30 minutes into production.
+
+## 7.2 Logging
+
+Never use console.log in production. Use a structured logger:
+
+  cd backend
+  npm install pino pino-pretty
+
+Create backend/utils/logger.js:
+
+  import pino from 'pino';
+
+  export const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    transport: process.env.NODE_ENV === 'development'
+      ? { target: 'pino-pretty' }   // Human-readable in dev
+      : undefined,                   // JSON in production (for log aggregators)
+  });
+
+  // Usage:
+  logger.info({ userId: user.id }, 'User logged in');
+  logger.error({ err, userId }, 'Failed to fetch notes');
+
+Structured logging (JSON with key-value pairs) is essential for production
+because tools like Datadog, Logtail, and AWS CloudWatch can query and filter
+these structured logs. Plain console.log output cannot be searched effectively.
+
+## 7.3 Centralized Error Handling
+
+Create backend/middleware/errorHandler.js:
+
+  import { logger } from '../utils/logger.js';
+
+  export const errorHandler = (err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+
+    logger.error({
+      err,
+      method: req.method,
+      path: req.path,
+      userId: req.user?.id,
+    });
+
+    res.status(statusCode).json({
+      success: false,
+      message: process.env.NODE_ENV === 'production' && statusCode === 500
+        ? 'Something went wrong'   // Never expose internal errors in production
+        : message,
+    });
+  };
+
+Add it to server.js as the LAST middleware (after all routes):
+
+  // Must be after all routes
+  app.use(errorHandler);
+
+Now in controllers, instead of try/catch everywhere, use a wrapper:
+
+  export const asyncHandler = (fn) => (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
+
+  // Usage in controllers:
+  export const getNotes = asyncHandler(async (req, res) => {
+    const notes = await noteService.getNotesForUser(req.user.id);
+    res.json({ success: true, notes });
+    // If noteService throws, it is automatically caught and passed to errorHandler
+  });
+
+## 7.4 Rate Limiting
+
+Add rate limiting to protect against abuse and brute-force attacks:
+
+  cd backend
+  npm install express-rate-limit
+
+  // backend/middleware/rateLimiter.js
+  import rateLimit from 'express-rate-limit';
+
+  export const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    max: 10,                    // 10 attempts per 15 minutes
+    message: 'Too many login attempts. Try again in 15 minutes.',
+  });
+
+  export const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,        // 1 minute
+    max: 100,                   // 100 requests per minute
+  });
+
+  // Apply in routes:
+  userrouter.post('/login', authLimiter, loginUser);
+  app.use('/api/', apiLimiter);  // Apply to all routes
+
+## 7.5 Basic CI/CD Pipeline
+
+Create .github/workflows/ci.yml at the repository root:
+
+  name: CI
+
+  on:
+    push:
+      branches: [main, develop]
+    pull_request:
+      branches: [main]
+
+  jobs:
+    backend-lint:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+            cache: 'npm'
+            cache-dependency-path: backend/package-lock.json
+        - run: cd backend && npm ci
+        - run: cd backend && npm run lint   # Add eslint to backend too
+
+    frontend-lint-and-build:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+            cache: 'npm'
+            cache-dependency-path: frontend/package-lock.json
+        - run: cd frontend && npm ci
+        - run: cd frontend && npm run lint
+        - run: cd frontend && npm run build
+
+This CI pipeline runs on every push to main and every pull request.
+It catches:
+  - Linting errors
+  - TypeScript type errors
+  - Build failures
+
+These catch bugs BEFORE they reach production.
+
+For deployment, consider:
+  - Backend: Railway, Render, or Fly.io (all have free tiers and auto-deploy from git)
+  - Frontend: Vercel (best for Next.js — made by the same team)
+  - Database: Supabase or Neon (free PostgreSQL hosting)
+  - Redis: Upstash (free Redis hosting with REST API)
+
+
+================================================================================
+# 8. STEP-BY-STEP EXECUTION PLAN
+================================================================================
+
+This is the safe order to implement all the changes described above.
+Each step is independent — if a step breaks something, it does not affect
+the previous steps.
+
+  PHASE 1 — FOUNDATION (Weeks 1-2)
+  ─────────────────────────────────
+
+  Step 1: Add environment validation
+    - Create .env.example files
+    - Add zod schema validation for env vars on startup
+    - WHY FIRST: Prevents mysterious failures from missing env vars
+    - RISK: Very low. Just adds validation.
+
+  Step 2: Add centralized error handling
+    - Create errorHandler middleware
+    - Create asyncHandler wrapper
+    - Apply to all routes
+    - WHY: Makes debugging easier for all subsequent steps
+    - RISK: Low. Existing behavior is preserved.
+
+  Step 3: Add logging
+    - Install pino
+    - Replace console.log with logger in server.js and key controllers
+    - RISK: Zero. Does not change behavior.
+
+  Step 4: Set up PostgreSQL locally
+    - Install PostgreSQL
+    - Create database and user
+    - Install Prisma
+    - Create schema.prisma with your models
+    - Run first migration
+    - RISK: Zero. MongoDB is still running.
+
+  PHASE 2 — DATABASE LAYER (Weeks 3-4)
+  ─────────────────────────────────────
+
+  Step 5: Build the Repository layer
+    - Create repositories/ directory
+    - Write userRepository, noteRepository, messageRepository
+    - These use Prisma but are NOT yet called by anything
+    - RISK: Zero. Legacy code still uses Mongoose.
+
+  Step 6: Build the Service layer
+    - Create services/ directory
+    - Write userService, noteService using the new repositories
+    - Write tests for services
+    - RISK: Zero. Services are not yet wired to routes.
+
+  Step 7: Wire one route to the new service layer (start with Notes)
+    - Update noteController to use noteService
+    - Keep the MongoDB model as a fallback
+    - Test manually: create, read, update, delete a note
+    - If it works, move on. If not, revert noteController to Mongoose.
+    - RISK: Medium. Limited to notes feature.
+
+  Step 8: Migrate remaining routes
+    - Repeat Step 7 for users, messages, conversations
+    - One route at a time
+    - RISK: Medium per step, but isolated.
+
+  Step 9: Run data migration script
+    - Write and test the script in a staging environment
+    - Run script in production during low-traffic window
+    - Verify counts and spot-check data
+    - RISK: Medium. Data migration is always risky — have a rollback plan ready.
+
+  Step 10: Switch reads to PostgreSQL
+    - Update repositories to read from PostgreSQL instead of MongoDB
+    - Keep MongoDB writes still running as a safety net
+    - Monitor for 3-5 days
+    - RISK: Medium. Roll back by swapping the repository implementation.
+
+  Step 11: Switch writes to PostgreSQL
+    - Stop writing to MongoDB
+    - RISK: Medium. Monitor closely. Do not delete MongoDB data yet.
+
+  PHASE 3 — CACHING (Week 5)
+  ────────────────────────────
+
+  Step 12: Install and configure Redis
+    - Install Redis locally
+    - Create redis.js config
+    - Add REDIS_HOST/REDIS_PORT to .env
+    - RISK: Very low. Redis is not used yet.
+
+  Step 13: Add caching middleware
+    - Create cacheMiddleware.js
+    - Apply to 2-3 high-traffic read endpoints only
+    - Monitor cache hit rates
+    - RISK: Low. If Redis is unavailable, the middleware falls through to the DB.
+
+  Step 14: Add cache invalidation
+    - On every write operation, invalidate related cache keys
+    - Test: update a note, verify the notes list returns fresh data
+    - RISK: Low. If invalidation misses a key, it will expire via TTL anyway.
+
+  PHASE 4 — FRONTEND STATE (Weeks 6-7)
+  ─────────────────────────────────────
+
+  Step 15: Install Zustand
+    - cd frontend && npm install zustand
+    - Create store/ directory
+    - RISK: Zero. Nothing uses the stores yet.
+
+  Step 16: Create Zustand stores
+    - Write authStore, noteStore, socketStore, uploadStore, viewStore
+    - Keep context/ directory intact
+    - RISK: Zero. Stores exist but are not used.
+
+  Step 17: Migrate Authcontext to authStore
+    - Replace useAuthContext with useAuthStore in one component at a time
+    - Start with the simplest component (e.g., the navbar showing user name)
+    - Test manually after each component
+    - RISK: Low per component. Rollback by reverting that one component.
+
+  Step 18: Migrate remaining contexts
+    - Repeat Step 17 for NoteContext, SocketContext, etc.
+    - Only delete a context file when NO component references it
+    - RISK: Low.
+
+  PHASE 5 — PERFORMANCE & CLEANUP (Week 8)
+  ──────────────────────────────────────────
+
+  Step 19: Add code splitting
+    - Identify large components (Recharts, AI chat, rich text editor)
+    - Wrap with next/dynamic
+    - Measure bundle size before and after with: npm run build
+    - RISK: Low. If dynamic import causes issues, remove it.
+
+  Step 20: Add database indexes
+    - Add @@index directives to Prisma schema
+    - Run: npx prisma migrate dev --name add-indexes
+    - RISK: Very low. Indexes never change query results, only speed.
+
+  Step 21: Add CI/CD pipeline
+    - Create .github/workflows/ci.yml
+    - Push to GitHub and verify the pipeline runs
+    - RISK: Zero. It is additive only.
+
+  Step 22: Cleanup
+    - Once all contexts are migrated: delete context/ directory
+    - Once all data is in PostgreSQL: decommission MongoDB connection
+    - Remove migration scripts from production code
+    - Update README.md with new setup instructions
+    - RISK: Very low. You have been running without these for weeks.
+
+
+================================================================================
+# 9. COMMON MISTAKES TO AVOID
+================================================================================
+
+## 9.1 Big-Bang Migration
+
+MISTAKE: Deciding to migrate the entire database, replace all contexts, and
+refactor all controllers in one weekend. "I'll just do it all at once."
+
+CONSEQUENCE: You break multiple things simultaneously. Debugging is a nightmare
+because you do not know which change caused which bug. You spend 3 days fixing
+things you broke instead of 3 weeks making controlled improvements.
+
+LESSON: Always migrate incrementally. One model at a time. One component at a
+time. Test after every single change.
+
+## 9.2 Tight Coupling
+
+MISTAKE: Putting database queries directly in route handlers, or calling
+axios directly in React components.
+
+Example of what NOT to do in Express:
+  app.get('/api/notes', async (req, res) => {
+    const notes = await mongoose.model('Note').find({ userId: req.user.id });
+    res.json(notes);
+  });
+
+CONSEQUENCE: If you change the database, you rewrite route handlers. If you
+add caching, you modify route handlers. If you add pagination, you modify route
+handlers. The route handler becomes a god-object doing too many things.
+
+LESSON: Separate concerns. Route handler → Controller → Service → Repository → DB.
+Each layer does ONE thing.
+
+## 9.3 No Rollback Plan
+
+MISTAKE: Deleting your MongoDB data the same day you run your PostgreSQL
+migration script.
+
+CONSEQUENCE: If the PostgreSQL migration had a bug (e.g., a character encoding
+issue corrupted 10% of note content), you have no way to recover the original data.
+
+LESSON: Keep your old system running alongside the new one for at least 2 weeks
+in production before decommissioning it. Take database backups before every
+migration step.
+
+## 9.4 Hardcoding Configuration
+
+MISTAKE: Writing const API_URL = 'http://localhost:4000'; directly in a component.
+
+CONSEQUENCE: The app works locally but breaks in production because the API URL
+is different. Every environment change requires a code change and a new deployment.
+
+LESSON: Always use environment variables for URLs, API keys, feature flags, and
+any value that differs between environments.
+
+## 9.5 Not Handling Redis Failures
+
+MISTAKE: Writing cache logic that crashes the entire request if Redis is unavailable.
+
+CONSEQUENCE: If your Redis server goes down for 5 minutes, your entire API goes
+down. What was a partial outage becomes a complete outage.
+
+LESSON: Always wrap Redis operations in try/catch. If Redis fails, fall through
+to the database. Degrade gracefully.
+
+## 9.6 Caching the Wrong Things
+
+MISTAKE: Caching user-specific data without including the user ID in the cache key.
+
+CONSEQUENCE: User A's notes are cached under key 'notes'. User B requests notes.
+Your app returns User A's notes to User B. This is a serious data leak.
+
+LESSON: ALWAYS include the user ID (or session identifier) in the cache key for
+any user-specific data:
+  `cache:notes:${userId}` — not just `cache:notes`
+
+## 9.7 Ignoring TypeScript Errors
+
+MISTAKE: Adding // @ts-ignore everywhere or setting strict: false in tsconfig.
+
+CONSEQUENCE: TypeScript's whole job is to catch bugs before runtime. Ignoring
+it defeats the purpose. You will encounter runtime errors in production that
+TypeScript would have caught.
+
+LESSON: Fix type errors properly. If a type error is genuinely complex, spend
+the time to understand it. It usually reveals a real bug or an incorrect assumption.
+
+## 9.8 Over-Optimizing Prematurely
+
+MISTAKE: Spending 2 days optimizing a feature that is only used by 5 users per day.
+
+CONSEQUENCE: Wasted time, added complexity, and you introduced a caching bug
+in a rarely-used feature while the real performance bottleneck (a missing DB
+index on a heavily-used query) goes unfixed.
+
+LESSON: Measure before you optimize. Use tools like:
+  - Prisma's query logging to find slow queries
+  - Next.js bundle analyzer: ANALYZE=true npm run build
+  - Chrome DevTools Performance panel for frontend bottlenecks
+  Then optimize the things that actually matter.
+
+
+================================================================================
+# 10. FINAL ADVICE FROM A SENIOR ENGINEER
+================================================================================
+
+## 10.1 How to Think About Scalability
+
+Scalability is NOT about using the most advanced technology. It is about making
+decisions that do not paint you into a corner.
+
+The most scalable decision you can make TODAY is:
+
+  SEPARATE YOUR CONCERNS.
+
+If your database logic is separated from your business logic (repository pattern),
+you can scale the database independently without touching business logic.
+
+If your UI state is separated from your server state (Zustand for UI, React
+Query for server state), you can change how you fetch data without rewriting
+components.
+
+Ask yourself for every piece of code you write:
+  "If this ONE thing needed to change, how many files would I have to touch?"
+
+If the answer is more than 2-3 files, the code is too tightly coupled.
+
+## 10.2 Writing Maintainable Code
+
+Code is read 10x more often than it is written. Write for the reader, not
+for the machine.
+
+  NAMES MATTER MORE THAN ANYTHING ELSE.
+  A function named processData() could do anything.
+  A function named migrateUserNotesFromMongoToPostgres() is self-documenting.
+
+  SMALL FUNCTIONS.
+  If a function is longer than 30 lines, it is probably doing too many things.
+  Split it. Each function should do ONE thing and do it well.
+
+  ERROR MESSAGES ARE YOUR FUTURE DEBUGGING PARTNER.
+  throw new Error('Failed');  — useless at 2am during a production incident
+  throw new Error(`Failed to fetch notes for user ${userId}: ${err.message}`); — helpful
+
+  COMMENTS EXPLAIN WHY, NOT WHAT.
+  // Increment i by 1  — useless, the code says that
+  // Skip the first result because the cursor itself is included in the query result
+  — valuable, explains a non-obvious behavior
+
+## 10.3 Incremental Refactoring Mindset
+
+The biggest trap for developers (even senior ones) is the "rewrite mindset."
+Looking at legacy code and thinking: "This is a mess. I need to rewrite it."
+
+Rewrites almost always fail or take 3x longer than expected. Why?
+Because you are simultaneously learning what the existing code ACTUALLY does
+(not what you think it does) while writing new code. There are always edge cases
+you did not account for.
+
+Instead, use the Boy Scout Rule:
+  "Leave the code a little better than you found it."
+
+When you open a file to add a feature, do these small things while you are there:
+  - Rename a confusing variable
+  - Extract a 5-line block into a named function
+  - Add a missing type annotation
+  - Remove a dead code block
+
+Over 6 months, these small improvements add up to a fundamentally better codebase —
+without the risk of a big rewrite.
+
+## 10.4 Your Immediate Next Steps
+
+Based on the analysis of this repository, here is what I recommend doing FIRST:
+
+1. Add .env.example files to document required environment variables.
+   (30 minutes, zero risk, immediately helpful for any new developer)
+
+2. Add centralized error handling to the Express server.
+   (2 hours, very low risk, makes all future debugging easier)
+
+3. Set up PostgreSQL + Prisma alongside MongoDB.
+   (4 hours, zero risk since MongoDB still runs, unlocks all future improvements)
+
+4. Install Zustand and create the authStore.
+   (2 hours, zero risk since Context API still runs)
+
+5. Migrate ONE simple component from useAuthContext to useAuthStore.
+   Test it. Then move on.
+
+The key insight: EVERY step in this guide is designed so that if it breaks,
+you can revert JUST THAT STEP. You are never more than one git revert away
+from a working application.
+
+That confidence — knowing you can always roll back — is what allows you to
+make bold improvements without fear.
+
+Good luck. Write code you will be proud to read 6 months from now.
+
+================================================================================
+END OF GUIDE
+================================================================================
