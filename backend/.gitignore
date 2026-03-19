@@ -35,3 +35,7 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+/generated/prisma
+prisma
+prisma.config.ts
